@@ -101,13 +101,51 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (To be filled by roadmapper) | | |
+| NAV-01 | Phase 2 | Pending |
+| NAV-02 | Phase 2 | Pending |
+| NAV-03 | Phase 2 | Pending |
+| NAV-04 | Phase 2 | Pending |
+| NAV-05 | Phase 2 | Pending |
+| PROJ-01 | Phase 1 | Pending |
+| PROJ-02 | Phase 1 | Pending |
+| PROJ-03 | Phase 1 | Pending |
+| PROJ-04 | Phase 2 | Pending |
+| PROJ-05 | Phase 2 | Pending |
+| PROJ-06 | Phase 2 | Pending |
+| PROJ-07 | Phase 2 | Pending |
+| PROJ-08 | Phase 2 | Pending |
+| PROJ-09 | Phase 2 | Pending |
+| PROJ-10 | Phase 1 | Pending |
+| GIT-01 | Phase 3 | Pending |
+| GIT-02 | Phase 3 | Pending |
+| GIT-03 | Phase 3 | Pending |
+| GIT-04 | Phase 3 | Pending |
+| GIT-05 | Phase 3 | Pending |
+| GIT-06 | Phase 3 | Pending |
+| GIT-07 | Phase 3 | Pending |
+| GIT-08 | Phase 3 | Pending |
+| GIT-09 | Phase 3 | Pending |
+| CFG-01 | Phase 1 | Pending |
+| CFG-02 | Phase 1 | Pending |
+| CFG-03 | Phase 1 | Pending |
+| CFG-04 | Phase 1 | Pending |
+| CFG-05 | Phase 1 | Pending |
+| OUT-01 | Phase 2 | Pending |
+| OUT-02 | Phase 2 | Pending |
+| OUT-03 | Phase 2 | Pending |
+| OUT-04 | Phase 2 | Pending |
+| OUT-05 | Phase 2 | Pending |
+| AUTO-01 | Phase 2 | Pending |
+| AUTO-02 | Phase 2 | Pending |
+| AUTO-03 | Phase 2 | Pending |
+| AUTO-04 | Phase 2 | Pending |
+| AUTO-05 | Phase 2 | Pending |
 
 **Coverage:**
 - v1 requirements: 36 total
-- Mapped to phases: 0
-- Unmapped: 36 ⚠️
+- Mapped to phases: 36
+- Unmapped: 0 ✓
 
 ---
 *Requirements defined: 2026-02-19*
-*Last updated: 2026-02-19 after initial definition*
+*Last updated: 2026-02-19 after roadmap creation*
