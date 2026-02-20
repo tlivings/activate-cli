@@ -38,6 +38,17 @@ pub enum Commands {
         #[arg(short, long)]
         state: Option<String>,
     },
+
+    /// Query for a project path (used by shell wrapper)
+    Query {
+        /// Keywords to match against project names
+        #[arg(required = true)]
+        keywords: Vec<String>,
+
+        /// Exclude the current directory from results
+        #[arg(long)]
+        exclude: Option<String>,
+    },
 }
 
 #[derive(Debug, Clone, ValueEnum)]

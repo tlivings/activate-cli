@@ -43,6 +43,9 @@ fn main() -> Result<()> {
         Commands::List { format, state } => {
             commands::list::execute_list(&db, state.as_deref(), format)
         }
+        Commands::Query { keywords, exclude } => {
+            commands::query::execute_query(&db, &keywords, exclude.as_deref())
+        }
     };
 
     // Handle command results with proper exit codes
