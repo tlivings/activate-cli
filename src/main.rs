@@ -13,6 +13,7 @@ mod error;
 mod navigation;
 mod output;
 mod shell;
+mod tui;
 mod utils;
 
 use automation::trigger_demotion_check;
@@ -43,29 +44,30 @@ fn main() -> Result<()> {
 
     // Process commands
     let result = match cli.command {
-        Commands::List { format, state } => {
+        None => commands::interactive::execute_interactive(&db),
+        Some(Commands::List { format, state }) => {
             commands::list::execute_list(&db, state.as_deref(), format)
         }
-        Commands::Query { keywords, exclude } => {
+        Some(Commands::Query { keywords, exclude }) => {
             commands::query::execute_query(&db, &keywords, exclude.as_deref())
         }
-        Commands::Activate { name } => {
+        Some(Commands::Activate { name }) => {
             commands::activate::execute_activate(&db, &name)
         }
-        Commands::Deactivate { name } => {
+        Some(Commands::Deactivate { name }) => {
             commands::deactivate::execute_deactivate(&db, &name)
         }
-        Commands::Archive { name } => {
+        Some(Commands::Archive { name }) => {
             commands::archive::execute_archive(&db, &name)
         }
-        Commands::Status { name } => {
+        Some(Commands::Status { name }) => {
             commands::status::execute_status(&db, &name)
         }
-        Commands::Init { shell } => commands::init::execute_init(&shell),
-        Commands::Completions { shell, current } => {
+        Some(Commands::Init { shell }) => commands::init::execute_init(&shell),
+        Some(Commands::Completions { shell, current }) => {
             commands::completions::execute_completions(&db, &shell, current.as_deref())
         }
-        Commands::Sync => commands::sync::execute_sync(&db),
+        Some(Commands::Sync) => commands::sync::execute_sync(&db),
     };
 
     // Handle command results with proper exit codes

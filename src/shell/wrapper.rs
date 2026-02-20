@@ -54,15 +54,21 @@ __activate_cd() {
 # Main activation function - replaces 'activate' for navigation
 activate() {
     local result
-    # If no args or subcommand, pass through to binary
     case "$1" in
         list|status|deactivate|archive|sync|init|completions|query|help|--help|-h|--version|-V)
             command activate "$@"
             return
             ;;
+        "")
+            # No args: TUI mode
+            result="$(command activate)"
+            ;;
+        *)
+            # Args: direct query
+            result="$(command activate query --exclude "$(pwd)" -- "$@")"
+            ;;
     esac
-    # Navigation: query and cd
-    result="$(command activate query --exclude "$(pwd)" -- "$@")" && __activate_cd "${result}"
+    [[ -n "$result" ]] && __activate_cd "$result"
 }
 
 # Tab completion
@@ -110,8 +116,16 @@ activate() {
             command activate "$@"
             return
             ;;
+        "")
+            # No args: TUI mode
+            result="$(command activate)"
+            ;;
+        *)
+            # Args: direct query
+            result="$(command activate query --exclude "$(pwd)" -- "$@")"
+            ;;
     esac
-    result="$(command activate query --exclude "$(pwd)" -- "$@")" && __activate_cd "${result}"
+    [[ -n "$result" ]] && __activate_cd "$result"
 }
 
 # Tab completion
@@ -155,7 +169,12 @@ function activate
     switch "$cmd"
         case list status deactivate archive sync init completions query help -h --help -V --version
             command activate $argv
+        case ''
+            # No args: TUI mode
+            set -l result (command activate)
+            and cd $result
         case '*'
+            # Args: direct query
             set -l result (command activate query --exclude (pwd) -- $argv)
             and cd $result
     end
