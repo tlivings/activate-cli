@@ -63,6 +63,11 @@ fn find_similar_projects(db: &Database, name: &str) -> Result<Vec<String>> {
 
 /// Calculate a simple similarity score between two strings
 fn calculate_similarity(s1: &str, s2: &str) -> f32 {
+    // Exact match
+    if s1 == s2 {
+        return 1.0;
+    }
+
     // Check for substring matches
     if s1.contains(s2) || s2.contains(s1) {
         return 0.8;

@@ -60,6 +60,24 @@ pub enum Commands {
         create: bool,
     },
 
+    /// Deactivate a project (mark as inactive)
+    Deactivate {
+        /// Project name to deactivate
+        name: String,
+    },
+
+    /// Archive a project (mark as archived)
+    Archive {
+        /// Project name to archive
+        name: String,
+    },
+
+    /// Show detailed project status
+    Status {
+        /// Project name to show status for
+        name: String,
+    },
+
     /// Initialize shell integration
     Init {
         /// Shell type (bash, zsh, fish)

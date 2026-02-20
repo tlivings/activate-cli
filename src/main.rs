@@ -58,6 +58,15 @@ fn main() -> Result<()> {
         Commands::Activate { name, create } => {
             commands::activate::execute_activate(&db, &name, create)
         }
+        Commands::Deactivate { name } => {
+            commands::deactivate::execute_deactivate(&db, &name)
+        }
+        Commands::Archive { name } => {
+            commands::archive::execute_archive(&db, &name)
+        }
+        Commands::Status { name } => {
+            commands::status::execute_status(&db, &name)
+        }
         Commands::Init { shell } => commands::init::execute_init(&shell),
         Commands::Completions { shell, current } => {
             commands::completions::execute_completions(&db, &shell, current.as_deref())
