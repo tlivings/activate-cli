@@ -41,18 +41,18 @@ fn render_list(frame: &mut Frame, app: &App, area: Rect) {
             let project = &app.projects[idx];
             let is_selected = i == app.selected;
 
-            let prefix = if is_selected { "▸ " } else { "  " };
-
             // State indicator with ignored overlay
-            let (indicator, color) = if project.ignored {
-                ("⊘", Color::DarkGray) // Ignored indicator
+            let (indicator, indicator_color, prefix_color) = if project.ignored {
+                ("⊘", Color::DarkGray, Color::DarkGray)
             } else {
                 match project.state {
-                    ProjectState::Active => ("●", Color::Green),
-                    ProjectState::Inactive => ("○", Color::Yellow),
-                    ProjectState::Archived => ("◌", Color::DarkGray),
+                    ProjectState::Active => ("●", Color::Green, Color::Green),
+                    ProjectState::Inactive => ("○", Color::Yellow, Color::Yellow),
+                    ProjectState::Archived => ("◌", Color::DarkGray, Color::DarkGray),
                 }
             };
+
+            let prefix = if is_selected { "▸ " } else { "  " };
 
             // Calculate padding for right-alignment
             let name_len = project.name.len() as u16;
@@ -63,24 +63,34 @@ fn render_list(frame: &mut Frame, app: &App, area: Rect) {
                 .saturating_sub(prefix_len + name_len + indicator_len);
             let padding = " ".repeat(available as usize);
 
-            // Dim the name if ignored
-            let name_style = if project.ignored {
+            // Style the name based on selection and state
+            let name_style = if is_selected {
+                if project.ignored {
+                    Style::default().fg(Color::Gray)
+                } else {
+                    Style::default().fg(Color::White).add_modifier(Modifier::BOLD)
+                }
+            } else if project.ignored {
                 Style::default().fg(Color::DarkGray)
+            } else {
+                Style::default().fg(Color::Reset)
+            };
+
+            let prefix_style = if is_selected {
+                Style::default().fg(prefix_color).add_modifier(Modifier::BOLD)
             } else {
                 Style::default()
             };
 
             let line = Line::from(vec![
-                Span::raw(prefix),
+                Span::styled(prefix, prefix_style),
                 Span::styled(&project.name, name_style),
                 Span::raw(padding),
-                Span::styled(indicator, Style::default().fg(color)),
+                Span::styled(indicator, Style::default().fg(indicator_color)),
             ]);
 
             let style = if is_selected {
-                Style::default()
-                    .add_modifier(Modifier::BOLD)
-                    .bg(Color::DarkGray)
+                Style::default().bg(Color::Rgb(40, 44, 52)) // Subtle dark blue-gray
             } else {
                 Style::default()
             };
@@ -95,16 +105,21 @@ fn render_list(frame: &mut Frame, app: &App, area: Rect) {
 
 fn render_status(frame: &mut Frame, app: &App, area: Rect) {
     if let Some(project) = app.selected_project() {
-        let path_line = format!("{}", project.path.display());
-
-        // Build meta line with optional git origin
-        let mut meta_parts = vec![
-            format!(
-                "Last touched {}",
-                format_relative_time(project.last_touched)
+        // Build meta line with colored components
+        let mut meta_spans = vec![
+            Span::styled("Last touched ", Style::default().fg(Color::DarkGray)),
+            Span::styled(
+                format_relative_time(project.last_touched),
+                Style::default().fg(Color::Rgb(150, 150, 150)),
             ),
-            format!("{} visits", project.visit_count),
+            Span::styled(" · ", Style::default().fg(Color::DarkGray)),
+            Span::styled(
+                format!("{}", project.visit_count),
+                Style::default().fg(Color::Rgb(150, 150, 150)),
+            ),
+            Span::styled(" visits", Style::default().fg(Color::DarkGray)),
         ];
+
         if let Some(ref origin) = project.git_origin {
             // Extract repo name from origin URL for compact display
             let repo_name = origin
@@ -112,14 +127,22 @@ fn render_status(frame: &mut Frame, app: &App, area: Rect) {
                 .next()
                 .unwrap_or(origin)
                 .trim_end_matches(".git");
-            meta_parts.push(format!("⎇ {}", repo_name));
+            meta_spans.push(Span::styled(" · ", Style::default().fg(Color::DarkGray)));
+            meta_spans.push(Span::styled("⎇ ", Style::default().fg(Color::Green)));
+            meta_spans.push(Span::styled(
+                repo_name,
+                Style::default().fg(Color::Rgb(120, 180, 120)),
+            ));
         }
-        let meta_line = meta_parts.join(" · ");
 
         let text = vec![
-            Line::from("─".repeat(area.width as usize)).style(Style::default().fg(Color::DarkGray)),
-            Line::from(path_line).style(Style::default().fg(Color::Cyan)),
-            Line::from(meta_line).style(Style::default().fg(Color::DarkGray)),
+            Line::from("─".repeat(area.width as usize))
+                .style(Style::default().fg(Color::Rgb(60, 60, 60))),
+            Line::from(Span::styled(
+                project.path.display().to_string(),
+                Style::default().fg(Color::Rgb(100, 200, 220)),
+            )),
+            Line::from(meta_spans),
         ];
 
         let paragraph = Paragraph::new(text);
@@ -128,36 +151,88 @@ fn render_status(frame: &mut Frame, app: &App, area: Rect) {
 }
 
 fn render_input(frame: &mut Frame, app: &App, area: Rect) {
-    let match_info = format!("{}/{}", app.filtered.len(), app.projects.len());
-    let ignored_info = if app.show_ignored {
-        " [showing ignored]"
+    // Build status line with colored components
+    let mut status_spans = vec![Span::raw("  ")];
+
+    // Match count with color based on results
+    let match_color = if app.filtered.is_empty() && !app.input.is_empty() {
+        Color::Red // No matches
+    } else if app.filtered.len() < app.projects.len() / 4 && !app.input.is_empty() {
+        Color::Yellow // Few matches
     } else {
-        ""
+        Color::Green // Good matches
     };
-    let help_hint = if app.command_mode {
-        "  Command: c:config a:archive d:deactivate i:ignore I:show-ignored ESC:cancel"
+
+    status_spans.push(Span::styled(
+        format!("{}", app.filtered.len()),
+        Style::default().fg(match_color),
+    ));
+    status_spans.push(Span::styled(
+        format!("/{}", app.projects.len()),
+        Style::default().fg(Color::DarkGray),
+    ));
+
+    if app.show_ignored {
+        status_spans.push(Span::styled(
+            " [showing ignored]",
+            Style::default().fg(Color::Rgb(180, 140, 100)),
+        ));
+    }
+
+    // Help hints with colored command keys
+    if app.command_mode {
+        status_spans.push(Span::styled("  Command: ", Style::default().fg(Color::Magenta)));
+        for (i, cmd) in ["c:config", "a:archive", "d:deactivate", "i:ignore", "I:show-ignored"]
+            .iter()
+            .enumerate()
+        {
+            if i > 0 {
+                status_spans.push(Span::raw(" "));
+            }
+            let parts: Vec<&str> = cmd.split(':').collect();
+            status_spans.push(Span::styled(parts[0], Style::default().fg(Color::Magenta)));
+            status_spans.push(Span::styled(":", Style::default().fg(Color::DarkGray)));
+            status_spans.push(Span::styled(parts[1], Style::default().fg(Color::DarkGray)));
+        }
+        status_spans.push(Span::raw(" "));
+        status_spans.push(Span::styled("ESC", Style::default().fg(Color::Magenta)));
+        status_spans.push(Span::styled(":cancel", Style::default().fg(Color::DarkGray)));
     } else if app.input.is_empty() {
-        "  /:command ?:help"
-    } else {
-        ""
-    };
+        status_spans.push(Span::styled("  /", Style::default().fg(Color::Cyan)));
+        status_spans.push(Span::styled(":command ", Style::default().fg(Color::DarkGray)));
+        status_spans.push(Span::styled("?", Style::default().fg(Color::Cyan)));
+        status_spans.push(Span::styled(":help", Style::default().fg(Color::DarkGray)));
+    }
 
-    let info_str = format!("{}{}{}", match_info, ignored_info, help_hint);
-    let separator_len = area.width.saturating_sub(info_str.len() as u16 + 4);
-    let separator = format!("  {} {}", info_str, "─".repeat(separator_len as usize));
+    // Calculate separator length
+    let text_len: usize = status_spans.iter().map(|s| s.content.len()).sum();
+    let separator_len = area.width.saturating_sub(text_len as u16);
+    status_spans.push(Span::styled(
+        format!(" {}", "─".repeat(separator_len as usize)),
+        Style::default().fg(Color::Rgb(60, 60, 60)),
+    ));
 
-    let (prompt, input_text) = if app.command_mode {
-        ("/", &app.command_input)
+    // Input line with prompt
+    let (prompt, prompt_color, input_text) = if app.command_mode {
+        ("/", Color::Magenta, &app.command_input)
     } else {
-        (">", &app.input)
+        (">", Color::Cyan, &app.input)
     };
 
     let text = vec![
-        Line::from(separator).style(Style::default().fg(Color::DarkGray)),
+        Line::from(status_spans),
         Line::from(vec![
-            Span::styled(format!("  {} ", prompt), Style::default().fg(Color::Cyan)),
-            Span::raw(input_text),
-            Span::styled("_", Style::default().add_modifier(Modifier::SLOW_BLINK)),
+            Span::styled(
+                format!("  {} ", prompt),
+                Style::default().fg(prompt_color).add_modifier(Modifier::BOLD),
+            ),
+            Span::styled(input_text, Style::default().fg(Color::White)),
+            Span::styled(
+                "_",
+                Style::default()
+                    .fg(prompt_color)
+                    .add_modifier(Modifier::SLOW_BLINK),
+            ),
         ]),
     ];
 
@@ -191,25 +266,55 @@ fn render_help_overlay(frame: &mut Frame, area: Rect) {
 
     // Build help content
     let mut lines = vec![
-        Line::from(help::HELP_TITLE).style(Style::default().add_modifier(Modifier::BOLD)),
+        Line::from(Span::styled(
+            help::HELP_TITLE,
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        )),
         Line::from(""),
     ];
 
     for (key, desc) in help::KEYBINDINGS {
-        lines.push(Line::from(vec![
-            Span::styled(format!("  {:18}", key), Style::default().fg(Color::Cyan)),
-            Span::raw(*desc),
-        ]));
+        if key.is_empty() {
+            // Empty line or section header
+            if desc.is_empty() {
+                lines.push(Line::from(""));
+            } else {
+                lines.push(Line::from(Span::styled(
+                    format!("  {}", desc),
+                    Style::default()
+                        .fg(Color::Yellow)
+                        .add_modifier(Modifier::BOLD),
+                )));
+            }
+        } else {
+            lines.push(Line::from(vec![
+                Span::styled(
+                    format!("  {:18}", key),
+                    Style::default().fg(Color::Rgb(100, 200, 220)),
+                ),
+                Span::styled(*desc, Style::default().fg(Color::Rgb(200, 200, 200))),
+            ]));
+        }
     }
 
     lines.push(Line::from(""));
-    lines.push(Line::from("Press ? to close").style(Style::default().fg(Color::DarkGray)));
+    lines.push(Line::from(vec![
+        Span::styled("Press ", Style::default().fg(Color::DarkGray)),
+        Span::styled("?", Style::default().fg(Color::Cyan)),
+        Span::styled(" to close", Style::default().fg(Color::DarkGray)),
+    ]));
 
     let help_block = Block::default()
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(Color::Cyan))
+        .border_style(Style::default().fg(Color::Rgb(100, 200, 220)))
         .title(" Help ")
-        .title_style(Style::default().add_modifier(Modifier::BOLD));
+        .title_style(
+            Style::default()
+                .fg(Color::Cyan)
+                .add_modifier(Modifier::BOLD),
+        );
 
     let help_paragraph = Paragraph::new(lines)
         .block(help_block)
@@ -228,7 +333,12 @@ fn render_settings_overlay(frame: &mut Frame, area: Rect) {
     frame.render_widget(Clear, settings_area);
 
     let mut lines = vec![
-        Line::from("Settings").style(Style::default().add_modifier(Modifier::BOLD)),
+        Line::from(Span::styled(
+            "Settings",
+            Style::default()
+                .fg(Color::Magenta)
+                .add_modifier(Modifier::BOLD),
+        )),
         Line::from(""),
     ];
 
@@ -240,45 +350,58 @@ fn render_settings_overlay(frame: &mut Frame, area: Rect) {
             .map(|p| p.display().to_string())
             .unwrap_or_else(|| "(not set)".to_string());
         lines.push(Line::from(vec![
-            Span::styled("  Projects directory: ", Style::default().fg(Color::DarkGray)),
-            Span::styled(tracked, Style::default().fg(Color::Cyan)),
+            Span::styled("  Projects directory: ", Style::default().fg(Color::Rgb(150, 150, 150))),
+            Span::styled(tracked, Style::default().fg(Color::Rgb(180, 140, 200))),
         ]));
 
         // Ignore patterns count
         let pattern_count = cfg.ignore_patterns.len();
+        let pattern_color = if pattern_count > 0 {
+            Color::Rgb(180, 140, 200)
+        } else {
+            Color::DarkGray
+        };
         lines.push(Line::from(vec![
-            Span::styled("  Ignore patterns:    ", Style::default().fg(Color::DarkGray)),
-            Span::styled(format!("{} patterns", pattern_count), Style::default()),
+            Span::styled("  Ignore patterns:    ", Style::default().fg(Color::Rgb(150, 150, 150))),
+            Span::styled(format!("{} patterns", pattern_count), Style::default().fg(pattern_color)),
         ]));
 
         // Config file path
         if let Ok(config_path) = crate::config::paths::get_config_file() {
             lines.push(Line::from(""));
             lines.push(Line::from(vec![
-                Span::styled("  Config file: ", Style::default().fg(Color::DarkGray)),
+                Span::styled("  Config file: ", Style::default().fg(Color::Rgb(150, 150, 150))),
                 Span::styled(
                     config_path.display().to_string(),
-                    Style::default().fg(Color::DarkGray),
+                    Style::default().fg(Color::Rgb(120, 120, 120)),
                 ),
             ]));
         }
     } else {
-        lines.push(Line::from("  Failed to load configuration")
-            .style(Style::default().fg(Color::Red)));
+        lines.push(Line::from(vec![
+            Span::styled("  Failed to load configuration", Style::default().fg(Color::Red)),
+        ]));
     }
 
     lines.push(Line::from(""));
     lines.push(Line::from(""));
-    lines.push(
-        Line::from("Press 'e' to edit in $EDITOR, 'c' to close")
-            .style(Style::default().fg(Color::DarkGray)),
-    );
+    lines.push(Line::from(vec![
+        Span::styled("Press ", Style::default().fg(Color::DarkGray)),
+        Span::styled("e", Style::default().fg(Color::Magenta)),
+        Span::styled(" to edit in $EDITOR, ", Style::default().fg(Color::DarkGray)),
+        Span::styled("c", Style::default().fg(Color::Magenta)),
+        Span::styled(" to close", Style::default().fg(Color::DarkGray)),
+    ]));
 
     let block = Block::default()
         .borders(Borders::ALL)
-        .border_style(Style::default().fg(Color::Magenta))
+        .border_style(Style::default().fg(Color::Rgb(180, 140, 200)))
         .title(" Settings ")
-        .title_style(Style::default().add_modifier(Modifier::BOLD));
+        .title_style(
+            Style::default()
+                .fg(Color::Magenta)
+                .add_modifier(Modifier::BOLD),
+        );
 
     let paragraph = Paragraph::new(lines)
         .block(block)
