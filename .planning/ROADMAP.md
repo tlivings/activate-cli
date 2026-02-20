@@ -17,6 +17,14 @@ This roadmap delivers the `activate` CLI tool in 3 focused phases. Phase 1 estab
 
 **Dependencies:** None
 
+**Plans:** 4 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Set up Rust project structure and configuration system
+- [ ] 01-02-PLAN.md — Implement SQLite database layer with schema and migrations
+- [ ] 01-03-PLAN.md — Implement add and remove commands
+- [ ] 01-04-PLAN.md — Implement list command with multiple output formats
+
 **Requirements:**
 - CFG-01: Config file stored in ~/.config/activate/ directory
 - CFG-02: User can configure tracked directory path via config file
