@@ -50,6 +50,16 @@ pub enum Commands {
         exclude: Option<String>,
     },
 
+    /// Activate a project (mark active, cd to it)
+    Activate {
+        /// Project name to activate
+        name: String,
+
+        /// Create the project if it doesn't exist
+        #[arg(long)]
+        create: bool,
+    },
+
     /// Initialize shell integration
     Init {
         /// Shell type (bash, zsh, fish)
@@ -65,6 +75,9 @@ pub enum Commands {
         #[arg(long)]
         current: Option<String>,
     },
+
+    /// Synchronize project states (discover new, demote stale, check missing)
+    Sync,
 }
 
 #[derive(Debug, Clone, ValueEnum)]

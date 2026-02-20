@@ -24,6 +24,8 @@ colored = "3.1.1"
 tabled = "0.18.0"
 serde_json = "1.0.137"
 fuzzy-matcher = "0.3"
+walkdir = "2.5"
+atty = "0.2"
 
 [dev-dependencies]
 tempfile = "3.8"

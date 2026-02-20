@@ -55,10 +55,14 @@ fn main() -> Result<()> {
         Commands::Query { keywords, exclude } => {
             commands::query::execute_query(&db, &keywords, exclude.as_deref())
         }
+        Commands::Activate { name, create } => {
+            commands::activate::execute_activate(&db, &name, create)
+        }
         Commands::Init { shell } => commands::init::execute_init(&shell),
         Commands::Completions { shell, current } => {
             commands::completions::execute_completions(&db, &shell, current.as_deref())
         }
+        Commands::Sync => commands::sync::execute_sync(&db),
     };
 
     // Handle command results with proper exit codes
