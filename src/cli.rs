@@ -1,83 +1,77 @@
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::Parser;
+use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(name = "activate")]
 #[command(about = "Quick access to any tracked project", long_about = None)]
 #[command(version)]
 pub struct Cli {
-    #[command(subcommand)]
-    pub command: Option<Commands>,
-}
+    /// Project name to navigate to (positional argument)
+    pub name: Option<String>,
 
-#[derive(Subcommand, Debug)]
-pub enum Commands {
-    /// List all tracked projects (pipe-friendly)
-    List {
-        /// Output as JSON (full project details)
-        #[arg(long)]
-        json: bool,
+    // === Management Flags ===
+    /// List all tracked projects
+    #[arg(short, long)]
+    pub list: bool,
 
-        /// Show full paths instead of just names
-        #[arg(long)]
-        paths: bool,
+    /// Add a project by path
+    #[arg(short, long, value_name = "PATH")]
+    pub add: Option<PathBuf>,
 
-        /// Filter projects by state (active, inactive, archived)
-        #[arg(short, long)]
-        state: Option<String>,
-    },
+    /// Remove a project by name
+    #[arg(short, long, value_name = "NAME")]
+    pub remove: Option<String>,
 
-    /// Query for a project path (used by shell wrapper)
-    Query {
-        /// Keywords to match against project names
-        #[arg(required = true)]
-        keywords: Vec<String>,
+    /// Synchronize project states
+    #[arg(short, long)]
+    pub sync: bool,
 
-        /// Exclude the current directory from results
-        #[arg(long)]
-        exclude: Option<String>,
-    },
+    /// Show project status
+    #[arg(long, value_name = "NAME")]
+    pub status: Option<String>,
 
-    /// Activate a project (find or create, mark active, cd to it)
-    Activate {
-        /// Project name to activate
-        name: String,
-    },
+    /// Deactivate a project
+    #[arg(short, long, value_name = "NAME")]
+    pub deactivate: Option<String>,
 
-    /// Deactivate a project (mark as inactive)
-    Deactivate {
-        /// Project name to deactivate
-        name: String,
-    },
-
-    /// Archive a project (mark as archived)
-    Archive {
-        /// Project name to archive
-        name: String,
-    },
-
-    /// Show detailed project status
-    Status {
-        /// Project name to show status for
-        name: String,
-    },
+    /// Archive a project
+    #[arg(long, value_name = "NAME")]
+    pub archive: Option<String>,
 
     /// Initialize shell integration
-    Init {
-        /// Shell type (bash, zsh, fish)
-        shell: String,
-    },
+    #[arg(long, value_name = "SHELL")]
+    pub init: Option<String>,
 
-    /// Generate completions for shell (internal use)
-    Completions {
-        /// Shell type
-        shell: String,
+    /// Query for project path (used by shell wrapper)
+    #[arg(short, long, value_name = "NAME")]
+    pub query: Option<String>,
 
-        /// Current word being completed
-        #[arg(long)]
-        current: Option<String>,
-    },
+    /// Generate completions (internal use)
+    #[arg(long, value_name = "SHELL", hide = true)]
+    pub completions: Option<String>,
 
-    /// Synchronize project states (discover new, demote stale, check missing)
-    Sync,
+    // === Modifiers ===
+    /// Output as JSON
+    #[arg(long)]
+    pub json: bool,
+
+    /// Show full paths (for list)
+    #[arg(long)]
+    pub paths: bool,
+
+    /// Filter by state (for list): active, inactive, archived
+    #[arg(long, value_name = "STATE")]
+    pub state: Option<String>,
+
+    /// Verbose output (show git status)
+    #[arg(short = 'v', long)]
+    pub verbose: bool,
+
+    /// Exclude directory from results (for query)
+    #[arg(long, value_name = "PATH", hide = true)]
+    pub exclude: Option<String>,
+
+    /// Current completion word (for completions)
+    #[arg(long, value_name = "WORD", hide = true)]
+    pub current: Option<String>,
 }
-
