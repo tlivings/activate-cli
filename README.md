@@ -49,6 +49,32 @@ eval "$(activate --init bash)"  # or zsh
 activate --init fish | source
 ```
 
+### Warp terminal users
+
+Warp has a built-in `activate` command. To avoid conflicts, use a custom function name instead of the standard shell setup:
+
+```bash
+# Add to ~/.zshrc (instead of the eval above)
+__ACTIVATE_BIN="$HOME/.cargo/bin/activate"
+act() {
+    if [[ $# -eq 0 ]]; then
+        local result="$("$__ACTIVATE_BIN")"
+        [[ -n "$result" ]] && cd "$result"
+    elif [[ "$1" == -* ]]; then
+        "$__ACTIVATE_BIN" "$@"
+    else
+        local result="$("$__ACTIVATE_BIN" --query "$1" --exclude "$PWD" 2>/dev/null)"
+        if [[ -n "$result" && -d "$result" ]]; then
+            cd "$result"
+        else
+            "$__ACTIVATE_BIN" "$@"
+        fi
+    fi
+}
+```
+
+Then use `act` instead of `activate` for all commands.
+
 ## Usage
 
 ### Basic navigation
