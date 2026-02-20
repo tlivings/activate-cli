@@ -42,6 +42,7 @@
 | Phase 02-state-management-navigation P05 | 238s | 2 tasks | 10 files |
 | Phase 02-state-management-navigation P03 | 447s | 3 tasks | 11 files |
 | Phase 02-state-management-navigation P06 | 330s | 6 tasks | 11 files |
+| Phase 03-git-integration P01 | 496s | 3 tasks | 4 files |
 | Phase 03-git-integration P02 | 492s | 4 tasks | 8 files |
 
 ## Accumulated Context
@@ -68,6 +69,7 @@
 | atty for TTY detection | Interactive prompts in create-on-activate | 2026-02-20 |
 | ratatui over tui-rs | ratatui is the actively maintained fork | 2026-02-20 |
 | Pipe-friendly list default | TUI replaces table format for human viewing | 2026-02-20 |
+| Flags over subcommands | Positional arg always means project name, management ops are flags | 2026-02-20 |
 | git2 with vendored-libgit2/openssl | Avoid system dependency issues on macOS | 2026-02-20 |
 | Graceful git error handling | Unpushed count returns 0 on error, not failure | 2026-02-20 |
 
@@ -85,6 +87,7 @@
 - [x] Roadmap creation (2026-02-19)
 - [x] Phase 1: Foundation & Core CRUD (2026-02-19)
 - [x] Phase 2: State Management & Navigation (2026-02-20)
+- [x] Phase 3 Plan 1: CLI refactor to flags (2026-02-20)
 - [x] Phase 3 Plan 2: Git module foundation (2026-02-20)
 
 ### Known Blockers
@@ -114,7 +117,7 @@ None currently identified.
 
 ### Last Session Summary
 
-Phase 3 Plan 2 executed. Created git module with clone, status, and origin detection. Added git2 crate with vendored libgit2 and OpenSSL. Implemented extract_repo_name() for HTTPS/SSH URLs, clone_repository() with SSH agent auth, GitStatus for uncommitted changes tracking, and detect_origin() for remote URL detection. 20 unit tests added.
+Phase 3 Plan 1 executed. Refactored CLI from subcommands to flags. Positional argument now always means project name. All management operations accessible via flags (-l list, -a add, -r remove, etc). Shell wrappers updated for new syntax.
 
 ### Entry Points for Next Session
 
@@ -124,14 +127,13 @@ Phase 3 Plan 2 executed. Created git module with clone, status, and origin detec
 
 ### Context Preservation
 
-**Phase 3 Plan 2 Complete - What was built:**
-- src/git/mod.rs - Module exports
-- src/git/clone.rs - URL parsing and repository cloning
-- src/git/status.rs - GitStatus with staged/unstaged/unpushed counts
-- src/git/origin.rs - Origin URL detection and is_git_repo helper
-- 20 unit tests for git module
+**Phase 3 Plan 1 Complete - What was built:**
+- src/cli.rs - Flag-based Cli struct (no more Commands enum)
+- src/main.rs - Dispatcher with flag checks before positional
+- src/commands/mod.rs - Added add/remove module exports
+- src/shell/wrapper.rs - Updated bash/zsh/fish for --query syntax
 
 ---
 *State initialized: 2026-02-19*
 *Last updated: 2026-02-20*
-*Last session: Executed 03-02-PLAN.md*
+*Last session: Executed 03-01-PLAN.md*
