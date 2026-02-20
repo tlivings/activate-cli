@@ -1,20 +1,28 @@
 use anyhow::{Context, Result};
 
 use crate::config::Config;
-use crate::database::operations::{
-    add_project_with_state, increment_visit_and_touch, list_projects, update_project_state,
-};
 use crate::database::models::ProjectState;
+use crate::database::operations::{
+    add_project_with_state, get_project_by_name, increment_visit_and_touch, list_projects,
+    update_git_origin, update_project_state,
+};
 use crate::database::Database;
+use crate::git::{clone_repository, detect_origin, extract_repo_name};
 use crate::navigation::ProjectMatcher;
 
 /// Execute the activate command - find or create project, mark active, output path
 ///
 /// This is the primary interface. It:
-/// 1. Searches for project by name (exact then fuzzy match)
-/// 2. If found: marks active, increments visit, outputs path
-/// 3. If not found: creates in tracked_directory and activates
+/// 1. If input is a URL (HTTPS or SSH): clone and activate
+/// 2. Otherwise searches for project by name (exact then fuzzy match)
+/// 3. If found: marks active, increments visit, outputs path
+/// 4. If not found: creates in tracked_directory and activates
 pub fn execute_activate(db: &Database, name: &str) -> Result<()> {
+    // Check if input looks like a URL (HTTPS or SSH format per CONTEXT.md)
+    if name.starts_with("https://") || name.starts_with("git@") || name.starts_with("ssh://") {
+        return clone_and_activate(db, name);
+    }
+
     let projects = list_projects(&db.conn, None)?;
     let matcher = ProjectMatcher::new();
 
@@ -41,6 +49,62 @@ pub fn execute_activate(db: &Database, name: &str) -> Result<()> {
 fn activate_existing(db: &Database, name: &str) -> Result<()> {
     update_project_state(&db.conn, name, ProjectState::Active)?;
     increment_visit_and_touch(&db.conn, name)?;
+
+    // Update origin on activate if not already stored or changed
+    if let Some(project) = get_project_by_name(&db.conn, name)? {
+        if let Some(origin) = detect_origin(&project.path) {
+            if project.git_origin.as_ref() != Some(&origin) {
+                update_git_origin(&db.conn, name, Some(&origin))?;
+            }
+        }
+    }
+
+    Ok(())
+}
+
+/// Clone a repository from URL and activate it
+fn clone_and_activate(db: &Database, url: &str) -> Result<()> {
+    let config = Config::load()?;
+
+    let repo_name = extract_repo_name(url)
+        .ok_or_else(|| anyhow::anyhow!("Could not extract repository name from URL"))?;
+
+    // Per CONTEXT.md: clone to tracked_directory/<repo-name>
+    let dest = config.tracked_directory.join(&repo_name);
+
+    // Per CONTEXT.md: error and abort if folder exists
+    if dest.exists() {
+        return Err(anyhow::anyhow!(
+            "Folder '{}' already exists. Use `activate {}` to activate existing project.",
+            dest.display(),
+            repo_name
+        ));
+    }
+
+    // Check if name already in database
+    if get_project_by_name(&db.conn, &repo_name)?.is_some() {
+        return Err(anyhow::anyhow!(
+            "Project '{}' already exists in database.",
+            repo_name
+        ));
+    }
+
+    eprintln!("Cloning {} into {}...", url, dest.display());
+    clone_repository(url, &dest)?;
+
+    // Canonicalize path
+    let canonical = dest
+        .canonicalize()
+        .context("Failed to canonicalize cloned path")?;
+
+    // Add to database as active with origin
+    add_project_with_state(&db.conn, &repo_name, &canonical, ProjectState::Active)?;
+    update_git_origin(&db.conn, &repo_name, Some(url))?;
+    increment_visit_and_touch(&db.conn, &repo_name)?;
+
+    eprintln!("Cloned and activated '{}'", repo_name);
+    println!("{}", canonical.display());
+
     Ok(())
 }
 

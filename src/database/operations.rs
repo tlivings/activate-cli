@@ -10,8 +10,8 @@ use crate::utils::paths::canonicalize_project_path;
 /// Add a new project to the database
 pub fn add_project(conn: &Connection, name: &str, path: &Path) -> Result<i64> {
     // Canonicalize the path to ensure uniqueness
-    let canonical_path = canonicalize_project_path(path)
-        .context("Failed to canonicalize project path")?;
+    let canonical_path =
+        canonicalize_project_path(path).context("Failed to canonicalize project path")?;
 
     // Convert path to string for storage
     let path_str = canonical_path.to_string_lossy().to_string();
@@ -38,12 +38,7 @@ pub fn add_project(conn: &Connection, name: &str, path: &Path) -> Result<i64> {
     conn.execute(
         "INSERT INTO projects (name, path, state, last_touched)
          VALUES (?1, ?2, ?3, ?4)",
-        params![
-            name,
-            path_str,
-            ProjectState::Inactive.to_string(),
-            now
-        ],
+        params![name, path_str, ProjectState::Inactive.to_string(), now],
     )
     .context("Failed to insert project into database")?;
 
@@ -52,11 +47,12 @@ pub fn add_project(conn: &Connection, name: &str, path: &Path) -> Result<i64> {
 
 /// Remove a project from the database by name
 pub fn remove_project(conn: &Connection, name: &str) -> Result<bool> {
-    let rows_affected = conn.execute(
-        "DELETE FROM projects WHERE name = ?1 COLLATE NOCASE",
-        params![name],
-    )
-    .context("Failed to delete project from database")?;
+    let rows_affected = conn
+        .execute(
+            "DELETE FROM projects WHERE name = ?1 COLLATE NOCASE",
+            params![name],
+        )
+        .context("Failed to delete project from database")?;
 
     Ok(rows_affected > 0)
 }
@@ -65,8 +61,7 @@ pub fn remove_project(conn: &Connection, name: &str) -> Result<bool> {
 pub fn list_projects(conn: &Connection, state_filter: Option<&str>) -> Result<Vec<Project>> {
     let query = if let Some(state) = state_filter {
         // Validate state
-        ProjectState::from_str(state)
-            .context("Invalid state filter")?;
+        ProjectState::from_str(state).context("Invalid state filter")?;
 
         "SELECT id, name, path, state, last_touched, visit_count, git_origin, created_at, updated_at, ignored
          FROM projects
@@ -78,8 +73,7 @@ pub fn list_projects(conn: &Connection, state_filter: Option<&str>) -> Result<Ve
          ORDER BY last_touched DESC"
     };
 
-    let mut stmt = conn.prepare(query)
-        .context("Failed to prepare query")?;
+    let mut stmt = conn.prepare(query).context("Failed to prepare query")?;
 
     let projects = if let Some(state) = state_filter {
         stmt.query_map(params![state], Project::from_row)?
@@ -137,11 +131,12 @@ pub fn get_project_by_name(conn: &Connection, name: &str) -> Result<Option<Proje
 
 /// Update project state (active, inactive, archived)
 pub fn update_project_state(conn: &Connection, name: &str, new_state: ProjectState) -> Result<()> {
-    let rows_affected = conn.execute(
-        "UPDATE projects SET state = ?1 WHERE name = ?2 COLLATE NOCASE",
-        params![new_state.to_string(), name],
-    )
-    .context("Failed to update project state")?;
+    let rows_affected = conn
+        .execute(
+            "UPDATE projects SET state = ?1 WHERE name = ?2 COLLATE NOCASE",
+            params![new_state.to_string(), name],
+        )
+        .context("Failed to update project state")?;
 
     if rows_affected == 0 {
         return Err(anyhow::anyhow!("Project '{}' not found", name));
@@ -167,9 +162,31 @@ pub fn increment_visit_and_touch(conn: &Connection, name: &str) -> Result<()> {
     Ok(())
 }
 
+/// Update the git origin URL for a project
+pub fn update_git_origin(conn: &Connection, name: &str, origin: Option<&str>) -> Result<()> {
+    let now = Utc::now().timestamp();
+    let rows_affected = conn
+        .execute(
+            "UPDATE projects SET git_origin = ?, updated_at = ? WHERE name = ? COLLATE NOCASE",
+            params![origin, now, name],
+        )
+        .context("Failed to update git origin")?;
+
+    if rows_affected == 0 {
+        return Err(anyhow::anyhow!("Project '{}' not found", name));
+    }
+
+    Ok(())
+}
+
 /// Add a new project with a specified initial state
 /// Used for create-on-activate feature
-pub fn add_project_with_state(conn: &Connection, name: &str, path: &PathBuf, state: ProjectState) -> Result<i64> {
+pub fn add_project_with_state(
+    conn: &Connection,
+    name: &str,
+    path: &PathBuf,
+    state: ProjectState,
+) -> Result<i64> {
     // Convert path to string for storage
     let path_str = path.to_string_lossy().to_string();
 
@@ -211,12 +228,7 @@ pub fn add_project_with_state(conn: &Connection, name: &str, path: &PathBuf, sta
     conn.execute(
         "INSERT INTO projects (name, path, state, last_touched)
          VALUES (?1, ?2, ?3, ?4)",
-        params![
-            name,
-            path_str,
-            state.to_string(),
-            now
-        ],
+        params![name, path_str, state.to_string(), now],
     )
     .context("Failed to insert project into database")?;
 
@@ -337,7 +349,8 @@ mod tests {
         conn.execute(
             "UPDATE projects SET state = 'active' WHERE name = 'project1'",
             [],
-        ).unwrap();
+        )
+        .unwrap();
 
         // Filter by inactive
         let inactive = list_projects(&conn, Some("inactive")).unwrap();
@@ -382,7 +395,8 @@ mod tests {
             conn.execute(
                 "UPDATE projects SET last_touched = ?1 WHERE name = ?2",
                 params![1000 + i * 100, format!("project{}", i)],
-            ).unwrap();
+            )
+            .unwrap();
         }
 
         let projects = list_projects(&conn, None).unwrap();
@@ -502,7 +516,8 @@ mod tests {
         std::fs::create_dir(&project_path).unwrap();
 
         let canonical = project_path.canonicalize().unwrap();
-        let id = add_project_with_state(&conn, "test-project", &canonical, ProjectState::Active).unwrap();
+        let id = add_project_with_state(&conn, "test-project", &canonical, ProjectState::Active)
+            .unwrap();
         assert!(id > 0);
 
         // Should be created with active state
@@ -556,7 +571,8 @@ mod tests {
         add_project_with_state(&conn, "test-project", &canonical1, ProjectState::Active).unwrap();
 
         // Try to add again with same name but different path
-        let result = add_project_with_state(&conn, "test-project", &canonical2, ProjectState::Active);
+        let result =
+            add_project_with_state(&conn, "test-project", &canonical2, ProjectState::Active);
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("already exists"));
     }

@@ -10,6 +10,7 @@ mod commands;
 mod config;
 mod database;
 mod error;
+mod git;
 mod navigation;
 mod output;
 mod shell;
