@@ -42,6 +42,11 @@ pub const MIGRATIONS: &[&str] = &[
     -- Create compound index for optimized frecency queries
     CREATE INDEX idx_projects_frecency ON projects(state, last_touched DESC, visit_count DESC);
     "#,
+    // Version 3: Add ignored column for hiding projects from TUI
+    r#"
+    -- Add ignored column (0 = visible, 1 = hidden from TUI)
+    ALTER TABLE projects ADD COLUMN ignored INTEGER NOT NULL DEFAULT 0;
+    "#,
 ];
 
 /// Run all pending database migrations
@@ -121,7 +126,7 @@ mod tests {
 
         // Verify schema version was set
         let version = get_schema_version(&conn).unwrap();
-        assert_eq!(version, 2, "Schema version should be 2 after migration");
+        assert_eq!(version, 3, "Schema version should be 3 after migration");
 
         // Verify tables were created
         let projects_exists: i32 = conn

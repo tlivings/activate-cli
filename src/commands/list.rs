@@ -7,11 +7,13 @@ use crate::database::operations;
 
 /// Execute the list command to display tracked projects
 /// Default: one name per line (pipe-friendly)
+/// --paths: show full paths instead of names
 /// --json: full project details as JSON
 pub fn execute_list(
     db: &Database,
     state_filter: Option<&str>,
     json: bool,
+    paths: bool,
 ) -> Result<()> {
     // Validate state filter if provided
     if let Some(state) = state_filter {
@@ -30,6 +32,11 @@ pub fn execute_list(
         // Full JSON output
         let json_str = serde_json::to_string_pretty(&projects)?;
         println!("{}", json_str);
+    } else if paths {
+        // Full paths, one per line
+        for project in &projects {
+            println!("{}", project.path.display());
+        }
     } else {
         // Simple: one name per line (most useful for piping)
         for project in &projects {
@@ -58,7 +65,7 @@ mod tests {
         let db = setup_test_db().unwrap();
 
         // Should not error on empty database
-        let result = execute_list(&db, None, false);
+        let result = execute_list(&db, None, false, false);
         assert!(result.is_ok());
     }
 
@@ -72,9 +79,10 @@ mod tests {
         std::fs::create_dir(&project_path).unwrap();
         operations::add_project(&db.conn, "test-project", &project_path).unwrap();
 
-        // List should succeed with both formats
-        assert!(execute_list(&db, None, false).is_ok()); // plain text
-        assert!(execute_list(&db, None, true).is_ok());  // json
+        // List should succeed with all formats
+        assert!(execute_list(&db, None, false, false).is_ok()); // names
+        assert!(execute_list(&db, None, false, true).is_ok());  // paths
+        assert!(execute_list(&db, None, true, false).is_ok());  // json
     }
 
     #[test]
@@ -82,12 +90,12 @@ mod tests {
         let db = setup_test_db().unwrap();
 
         // Valid state filters should work
-        assert!(execute_list(&db, Some("active"), false).is_ok());
-        assert!(execute_list(&db, Some("inactive"), false).is_ok());
-        assert!(execute_list(&db, Some("archived"), false).is_ok());
+        assert!(execute_list(&db, Some("active"), false, false).is_ok());
+        assert!(execute_list(&db, Some("inactive"), false, false).is_ok());
+        assert!(execute_list(&db, Some("archived"), false, false).is_ok());
 
         // Invalid state filter should error
-        let result = execute_list(&db, Some("invalid"), false);
+        let result = execute_list(&db, Some("invalid"), false, false);
         assert!(result.is_err());
         assert!(result.unwrap_err().to_string().contains("Invalid state filter"));
     }
@@ -97,7 +105,7 @@ mod tests {
         let db = setup_test_db().unwrap();
 
         // State filter should be case-insensitive
-        assert!(execute_list(&db, Some("ACTIVE"), false).is_ok());
-        assert!(execute_list(&db, Some("Inactive"), false).is_ok());
+        assert!(execute_list(&db, Some("ACTIVE"), false, false).is_ok());
+        assert!(execute_list(&db, Some("Inactive"), false, false).is_ok());
     }
 }

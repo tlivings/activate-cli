@@ -22,7 +22,7 @@ pub fn execute_interactive(db: &Database) -> Result<()> {
     }
 
     // Run TUI
-    let selected: Option<PathBuf> = crate::tui::run_app(projects)
+    let selected: Option<PathBuf> = crate::tui::run_app(projects, db)
         .map_err(|e| anyhow::anyhow!("TUI error: {}", e))?;
 
     // If project selected, activate it and output path

@@ -17,6 +17,10 @@ pub enum Commands {
         #[arg(long)]
         json: bool,
 
+        /// Show full paths instead of just names
+        #[arg(long)]
+        paths: bool,
+
         /// Filter projects by state (active, inactive, archived)
         #[arg(short, long)]
         state: Option<String>,

@@ -68,12 +68,12 @@ pub fn list_projects(conn: &Connection, state_filter: Option<&str>) -> Result<Ve
         ProjectState::from_str(state)
             .context("Invalid state filter")?;
 
-        "SELECT id, name, path, state, last_touched, visit_count, git_origin, created_at, updated_at
+        "SELECT id, name, path, state, last_touched, visit_count, git_origin, created_at, updated_at, ignored
          FROM projects
          WHERE state = ?1
          ORDER BY last_touched DESC"
     } else {
-        "SELECT id, name, path, state, last_touched, visit_count, git_origin, created_at, updated_at
+        "SELECT id, name, path, state, last_touched, visit_count, git_origin, created_at, updated_at, ignored
          FROM projects
          ORDER BY last_touched DESC"
     };
@@ -98,10 +98,30 @@ pub fn list_projects(conn: &Connection, state_filter: Option<&str>) -> Result<Ve
     Ok(result)
 }
 
+/// Toggle the ignored status of a project
+pub fn toggle_ignored(conn: &Connection, name: &str) -> Result<bool> {
+    conn.execute(
+        "UPDATE projects SET ignored = NOT ignored WHERE name = ?1 COLLATE NOCASE",
+        params![name],
+    )
+    .context("Failed to toggle project ignored status")?;
+
+    // Return the new ignored status
+    let ignored: i64 = conn
+        .query_row(
+            "SELECT ignored FROM projects WHERE name = ?1 COLLATE NOCASE",
+            params![name],
+            |row| row.get(0),
+        )
+        .context("Failed to get ignored status")?;
+
+    Ok(ignored != 0)
+}
+
 /// Get a project by name (case-insensitive)
 pub fn get_project_by_name(conn: &Connection, name: &str) -> Result<Option<Project>> {
     let mut stmt = conn.prepare(
-        "SELECT id, name, path, state, last_touched, visit_count, git_origin, created_at, updated_at
+        "SELECT id, name, path, state, last_touched, visit_count, git_origin, created_at, updated_at, ignored
          FROM projects
          WHERE name = ?1 COLLATE NOCASE"
     )

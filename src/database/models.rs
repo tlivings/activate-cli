@@ -51,6 +51,8 @@ pub struct Project {
     pub updated_at: DateTime<Utc>,
     /// Visit count for frecency scoring
     pub visit_count: u32,
+    /// Whether this project is hidden from TUI
+    pub ignored: bool,
 }
 
 impl Project {
@@ -101,6 +103,7 @@ impl Project {
                     "Invalid timestamp".into(),
                 ))?,
             visit_count: row.get::<_, i64>("visit_count")? as u32,
+            ignored: row.get::<_, i64>("ignored")? != 0,
         })
     }
 }

@@ -34,10 +34,16 @@ fn render_list(frame: &mut Frame, app: &App, area: Rect) {
             let is_selected = i == app.selected;
 
             let prefix = if is_selected { "▸ " } else { "  " };
-            let state_indicator = match project.state {
-                ProjectState::Active => ("●", Color::Green),
-                ProjectState::Inactive => ("○", Color::Yellow),
-                ProjectState::Archived => ("◌", Color::DarkGray),
+
+            // State indicator with ignored overlay
+            let (indicator, color) = if project.ignored {
+                ("⊘", Color::DarkGray) // Ignored indicator
+            } else {
+                match project.state {
+                    ProjectState::Active => ("●", Color::Green),
+                    ProjectState::Inactive => ("○", Color::Yellow),
+                    ProjectState::Archived => ("◌", Color::DarkGray),
+                }
             };
 
             // Calculate padding for right-alignment
@@ -47,11 +53,18 @@ fn render_list(frame: &mut Frame, app: &App, area: Rect) {
             let available = area.width.saturating_sub(prefix_len + name_len + indicator_len);
             let padding = " ".repeat(available as usize);
 
+            // Dim the name if ignored
+            let name_style = if project.ignored {
+                Style::default().fg(Color::DarkGray)
+            } else {
+                Style::default()
+            };
+
             let line = Line::from(vec![
                 Span::raw(prefix),
-                Span::raw(&project.name),
+                Span::styled(&project.name, name_style),
                 Span::raw(padding),
-                Span::styled(state_indicator.0, Style::default().fg(state_indicator.1)),
+                Span::styled(indicator, Style::default().fg(color)),
             ]);
 
             let style = if is_selected {
@@ -73,11 +86,22 @@ fn render_list(frame: &mut Frame, app: &App, area: Rect) {
 fn render_status(frame: &mut Frame, app: &App, area: Rect) {
     if let Some(project) = app.selected_project() {
         let path_line = format!("{}", project.path.display());
-        let meta_line = format!(
-            "Last touched {} · {} visits",
-            format_relative_time(project.last_touched),
-            project.visit_count
-        );
+
+        // Build meta line with optional git origin
+        let mut meta_parts = vec![
+            format!("Last touched {}", format_relative_time(project.last_touched)),
+            format!("{} visits", project.visit_count),
+        ];
+        if let Some(ref origin) = project.git_origin {
+            // Extract repo name from origin URL for compact display
+            let repo_name = origin
+                .rsplit('/')
+                .next()
+                .unwrap_or(origin)
+                .trim_end_matches(".git");
+            meta_parts.push(format!("⎇ {}", repo_name));
+        }
+        let meta_line = meta_parts.join(" · ");
 
         let text = vec![
             Line::from("─".repeat(area.width as usize))
@@ -93,10 +117,14 @@ fn render_status(frame: &mut Frame, app: &App, area: Rect) {
 
 fn render_input(frame: &mut Frame, app: &App, area: Rect) {
     let match_info = format!("{}/{}", app.filtered.len(), app.projects.len());
-    let separator_len = area.width.saturating_sub(match_info.len() as u16 + 4);
+    let ignored_info = if app.show_ignored { " [showing ignored]" } else { "" };
+    let help_hint = if app.input.is_empty() { "  i:ignore I:toggle-hidden" } else { "" };
+
+    let info_str = format!("{}{}{}", match_info, ignored_info, help_hint);
+    let separator_len = area.width.saturating_sub(info_str.len() as u16 + 4);
     let separator = format!(
         "  {} {}",
-        match_info,
+        info_str,
         "─".repeat(separator_len as usize)
     );
 

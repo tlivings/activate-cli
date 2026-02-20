@@ -10,12 +10,20 @@ pub struct App {
     pub input: String,
     pub should_quit: bool,
     pub selected_path: Option<PathBuf>,
+    pub show_ignored: bool,
+    pub toggle_ignore_request: Option<String>, // Project name to toggle
     matcher: ProjectMatcher,
 }
 
 impl App {
     pub fn new(projects: Vec<Project>) -> Self {
-        let filtered: Vec<usize> = (0..projects.len()).collect();
+        // Filter out ignored by default
+        let filtered: Vec<usize> = projects
+            .iter()
+            .enumerate()
+            .filter(|(_, p)| !p.ignored)
+            .map(|(i, _)| i)
+            .collect();
         Self {
             projects,
             filtered,
@@ -23,13 +31,21 @@ impl App {
             input: String::new(),
             should_quit: false,
             selected_path: None,
+            show_ignored: false,
+            toggle_ignore_request: None,
             matcher: ProjectMatcher::new(),
         }
     }
 
     pub fn filter(&mut self) {
         if self.input.is_empty() {
-            self.filtered = (0..self.projects.len()).collect();
+            // Show all (or filter ignored based on show_ignored flag)
+            self.filtered = self.projects
+                .iter()
+                .enumerate()
+                .filter(|(_, p)| self.show_ignored || !p.ignored)
+                .map(|(i, _)| i)
+                .collect();
         } else {
             let results = self.matcher.match_projects(&self.input, &self.projects);
             self.filtered = results
@@ -39,12 +55,31 @@ impl App {
                         .iter()
                         .position(|p| p.name == r.project.name)
                 })
+                .filter(|&idx| self.show_ignored || !self.projects[idx].ignored)
                 .collect();
         }
         // Reset selection if out of bounds
         if self.selected >= self.filtered.len() {
             self.selected = self.filtered.len().saturating_sub(1);
         }
+    }
+
+    pub fn toggle_show_ignored(&mut self) {
+        self.show_ignored = !self.show_ignored;
+        self.filter();
+    }
+
+    pub fn request_toggle_ignore(&mut self) {
+        if let Some(project) = self.selected_project() {
+            self.toggle_ignore_request = Some(project.name.clone());
+        }
+    }
+
+    pub fn update_project_ignored(&mut self, name: &str, ignored: bool) {
+        if let Some(project) = self.projects.iter_mut().find(|p| p.name == name) {
+            project.ignored = ignored;
+        }
+        self.filter();
     }
 
     pub fn selected_project(&self) -> Option<&Project> {
@@ -88,6 +123,14 @@ impl App {
             (KeyCode::Down, _)
             | (KeyCode::Char('j'), KeyModifiers::NONE)
             | (KeyCode::Char('n'), KeyModifiers::CONTROL) => self.move_down(),
+            // Toggle ignore on selected project (lowercase i)
+            (KeyCode::Char('i'), KeyModifiers::NONE) if self.input.is_empty() => {
+                self.request_toggle_ignore();
+            }
+            // Toggle show/hide ignored projects (uppercase I)
+            (KeyCode::Char('I'), KeyModifiers::SHIFT) => {
+                self.toggle_show_ignored();
+            }
             (KeyCode::Backspace, _) => {
                 self.input.pop();
                 self.filter();
@@ -101,7 +144,6 @@ impl App {
     }
 }
 
-// run_app will be implemented in Task 4
 use std::io;
 use ratatui::{backend::CrosstermBackend, Terminal};
 use crossterm::{
@@ -109,9 +151,11 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use crate::database::Database;
+use crate::database::operations::toggle_ignored;
 use crate::tui::ui;
 
-pub fn run_app(projects: Vec<Project>) -> io::Result<Option<PathBuf>> {
+pub fn run_app(projects: Vec<Project>, db: &Database) -> io::Result<Option<PathBuf>> {
     // Setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -125,6 +169,13 @@ pub fn run_app(projects: Vec<Project>) -> io::Result<Option<PathBuf>> {
     // Main loop
     loop {
         terminal.draw(|f| ui::render(f, &app))?;
+
+        // Handle toggle ignore request (must be done outside of key handling due to borrow)
+        if let Some(name) = app.toggle_ignore_request.take() {
+            if let Ok(new_status) = toggle_ignored(&db.conn, &name) {
+                app.update_project_ignored(&name, new_status);
+            }
+        }
 
         if let Event::Key(key) = event::read()? {
             if key.kind == KeyEventKind::Press {
