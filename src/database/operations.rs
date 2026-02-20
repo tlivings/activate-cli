@@ -58,6 +58,7 @@ pub fn remove_project(conn: &Connection, name: &str) -> Result<bool> {
 }
 
 /// List all projects, optionally filtered by state
+/// Projects are sorted by state first (Active, Inactive, Archived), then by frecency
 pub fn list_projects(conn: &Connection, state_filter: Option<&str>) -> Result<Vec<Project>> {
     let query = if let Some(state) = state_filter {
         // Validate state
@@ -66,11 +67,19 @@ pub fn list_projects(conn: &Connection, state_filter: Option<&str>) -> Result<Ve
         "SELECT id, name, path, state, last_touched, visit_count, git_origin, created_at, updated_at, ignored
          FROM projects
          WHERE state = ?1
-         ORDER BY last_touched DESC"
+         ORDER BY CASE state
+                    WHEN 'active' THEN 1
+                    WHEN 'inactive' THEN 2
+                    WHEN 'archived' THEN 3
+                  END"
     } else {
         "SELECT id, name, path, state, last_touched, visit_count, git_origin, created_at, updated_at, ignored
          FROM projects
-         ORDER BY last_touched DESC"
+         ORDER BY CASE state
+                    WHEN 'active' THEN 1
+                    WHEN 'inactive' THEN 2
+                    WHEN 'archived' THEN 3
+                  END"
     };
 
     let mut stmt = conn.prepare(query).context("Failed to prepare query")?;
@@ -88,6 +97,27 @@ pub fn list_projects(conn: &Connection, state_filter: Option<&str>) -> Result<Ve
             Err(e) => eprintln!("Warning: Failed to parse project row: {}", e),
         }
     }
+
+    // Sort by frecency within each state group
+    use crate::navigation::frecency::calculate_frecency;
+    result.sort_by(|a, b| {
+        // First sort by state priority
+        let state_order = |s: &ProjectState| match s {
+            ProjectState::Active => 1,
+            ProjectState::Inactive => 2,
+            ProjectState::Archived => 3,
+        };
+
+        match state_order(&a.state).cmp(&state_order(&b.state)) {
+            std::cmp::Ordering::Equal => {
+                // Within same state, sort by frecency (higher frecency first)
+                let frecency_a = calculate_frecency(a.visit_count, a.last_touched);
+                let frecency_b = calculate_frecency(b.visit_count, b.last_touched);
+                frecency_b.partial_cmp(&frecency_a).unwrap_or(std::cmp::Ordering::Equal)
+            }
+            other => other,
+        }
+    });
 
     Ok(result)
 }
@@ -381,30 +411,72 @@ mod tests {
     }
 
     #[test]
-    fn test_projects_ordered_by_last_touched() {
+    fn test_projects_ordered_by_state_then_frecency() {
         let conn = setup_test_db().unwrap();
         let temp_dir = TempDir::new().unwrap();
 
-        // Add projects with different timestamps
-        for i in 1..=3 {
+        // Create projects with different states and visit patterns
+        for i in 1..=6 {
             let project_path = temp_dir.path().join(format!("project{}", i));
             std::fs::create_dir(&project_path).unwrap();
             add_project(&conn, &format!("project{}", i), &project_path).unwrap();
-
-            // Update last_touched with different values
-            conn.execute(
-                "UPDATE projects SET last_touched = ?1 WHERE name = ?2",
-                params![1000 + i * 100, format!("project{}", i)],
-            )
-            .unwrap();
         }
+
+        // Set different states and visit counts:
+        // Active projects with different visit counts
+        conn.execute(
+            "UPDATE projects SET state = 'active', visit_count = 10, last_touched = ?1 WHERE name = 'project1'",
+            params![Utc::now().timestamp()],
+        )
+        .unwrap();
+        conn.execute(
+            "UPDATE projects SET state = 'active', visit_count = 20, last_touched = ?1 WHERE name = 'project2'",
+            params![Utc::now().timestamp()],
+        )
+        .unwrap();
+
+        // Inactive projects
+        conn.execute(
+            "UPDATE projects SET state = 'inactive', visit_count = 5, last_touched = ?1 WHERE name = 'project3'",
+            params![Utc::now().timestamp()],
+        )
+        .unwrap();
+        conn.execute(
+            "UPDATE projects SET state = 'inactive', visit_count = 15, last_touched = ?1 WHERE name = 'project4'",
+            params![Utc::now().timestamp()],
+        )
+        .unwrap();
+
+        // Archived projects
+        conn.execute(
+            "UPDATE projects SET state = 'archived', visit_count = 100, last_touched = ?1 WHERE name = 'project5'",
+            params![Utc::now().timestamp()],
+        )
+        .unwrap();
+        conn.execute(
+            "UPDATE projects SET state = 'archived', visit_count = 1, last_touched = ?1 WHERE name = 'project6'",
+            params![Utc::now().timestamp()],
+        )
+        .unwrap();
 
         let projects = list_projects(&conn, None).unwrap();
 
-        // Should be ordered by last_touched DESC (most recent first)
-        assert_eq!(projects[0].name, "project3");
-        assert_eq!(projects[1].name, "project2");
-        assert_eq!(projects[2].name, "project1");
+        // Should be ordered by state first (Active, Inactive, Archived)
+        // Within each state, ordered by frecency (higher visit count = higher frecency)
+        assert_eq!(projects[0].state, ProjectState::Active);
+        assert_eq!(projects[0].name, "project2"); // Higher visit count
+        assert_eq!(projects[1].state, ProjectState::Active);
+        assert_eq!(projects[1].name, "project1"); // Lower visit count
+
+        assert_eq!(projects[2].state, ProjectState::Inactive);
+        assert_eq!(projects[2].name, "project4"); // Higher visit count
+        assert_eq!(projects[3].state, ProjectState::Inactive);
+        assert_eq!(projects[3].name, "project3"); // Lower visit count
+
+        assert_eq!(projects[4].state, ProjectState::Archived);
+        assert_eq!(projects[4].name, "project5"); // Higher visit count
+        assert_eq!(projects[5].state, ProjectState::Archived);
+        assert_eq!(projects[5].name, "project6"); // Lower visit count
     }
 
     #[test]
