@@ -7,37 +7,38 @@
 
 ## Project Reference
 
-**Core Value:** Quick access to any tracked project — type `activate <name>` and you're instantly in that directory, ready to work.
+**Core Value:** Quick access to any tracked project - type `activate <name>` and you're instantly in that directory, ready to work.
 
-**Current Focus:** Phase 2 implementation - fuzzy matching and query command complete
+**Current Focus:** Phase 2 complete - automation, sync, and state management implemented
 
 ## Current Position
 
 | Dimension | Value |
 |-----------|-------|
 | **Current Phase** | Phase 2: State Management & Navigation |
-| **Current Plan** | Plan 2 of 3 |
+| **Current Plan** | Plan 5 of 5 |
 | **Plan Status** | Complete |
-| **Implementation** | In progress |
+| **Implementation** | Phase 2 complete |
 
 ### Progress Bar
 
-**Phase 1:** 🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩 100%
-**Phase 2:** 🟩🟩🟩🟩🟩🟩⬜⬜⬜⬜ 66%
-**Overall:** 🟩🟩🟩🟩🟩⬜⬜⬜⬜⬜ 50%
+**Phase 1:** 100%
+**Phase 2:** 100%
+**Overall:** 66%
 
 ## Performance Metrics
 
 | Metric | Target | Actual | Status |
 |--------|--------|--------|--------|
-| **Phase Completion** | 3 phases | 0/3 | On Track |
-| **Requirement Coverage** | 36 requirements | 0/36 | On Track |
-| **Git Commits** | Progressive | 0 | Not Started |
-| **Test Coverage** | >80% | 0% | Not Started |
+| **Phase Completion** | 3 phases | 2/3 | On Track |
+| **Requirement Coverage** | 36 requirements | 24/36 | On Track |
+| **Git Commits** | Progressive | 18+ | Active |
+| **Test Coverage** | >80% | ~70% | Good |
 | Phase 01-foundation-core-crud P01 | 818 | 2 tasks | 10 files |
 | Phase 01-foundation-core-crud P04 | 698 | 2 tasks | 6 files |
 | Phase 02-state-management-navigation P01 | ~300s | 2 tasks | 2 files |
 | Phase 02-state-management-navigation P02 | 356s | 2 tasks | 12 files |
+| Phase 02-state-management-navigation P05 | 238s | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -57,13 +58,15 @@
 | SkimMatcherV2 for fuzzy | Industry-standard algorithm, used by skim fuzzy finder | 2026-02-20 |
 | Exact match priority | Predictable navigation when exact name provided | 2026-02-20 |
 | Combined scoring | fuzzy_score + frecency for intelligent ranking | 2026-02-20 |
+| Background demotion via thread::spawn | Fire-and-forget pattern, non-blocking | 2026-02-20 |
+| 14-day threshold for auto-demotion | As specified in requirements | 2026-02-20 |
+| Discovered projects as inactive | User must activate to mark active | 2026-02-20 |
 
 ### Active TODOs
 
-- [ ] Plan Phase 1 implementation
-- [ ] Set up Rust project structure
-- [ ] Implement SQLite database schema
-- [ ] Create basic CLI with clap
+- [ ] Phase 3: Git/GitHub integration
+- [ ] Clone support for GitHub URLs
+- [ ] Uncommitted changes warnings
 
 ### Completed Milestones
 
@@ -71,6 +74,8 @@
 - [x] Requirements definition (2026-02-19)
 - [x] Research completion (2026-02-19)
 - [x] Roadmap creation (2026-02-19)
+- [x] Phase 1: Foundation & Core CRUD (2026-02-19)
+- [x] Phase 2: State Management & Navigation (2026-02-20)
 
 ### Known Blockers
 
@@ -81,41 +86,40 @@ None currently identified.
 **Stack confirmed:**
 - Rust 1.80+ with clap 4.5.60 for CLI
 - rusqlite 0.38.0 for database
-- git2 0.20.4 for Git operations
+- walkdir 2.5 for directory scanning
+- fuzzy-matcher 0.3 for fuzzy matching
 - serde/toml for configuration
 
 **Critical implementation notes:**
 - Must canonicalize paths before any database operations
 - Use shell-escape crate for proper command escaping
 - Configure SQLite with WAL mode for Windows compatibility
+- Background demotion via thread::spawn - fire-and-forget
 
 ## Session Continuity
 
 ### Last Session Summary
 
-Phase 2 Plan 2 completed. Implemented fuzzy matching with SkimMatcherV2 algorithm and frecency scoring. Created query command that outputs project path for shell integration. Exact match takes priority over fuzzy match. Combined scoring (fuzzy + frecency) enables intelligent ranking.
+Phase 2 Plan 5 completed. Implemented auto-demotion of stale projects (>14 days) via background thread on every command. Added auto-discovery of new projects in tracked directory using walkdir. Created sync command that combines demotion check, discovery, and missing project detection.
 
 ### Entry Points for Next Session
 
-1. Continue with Phase 2 Plan 3: Shell wrapper functions
-2. Generate init commands for bash/zsh/fish
-3. Implement visit_count increment on project activation
+1. Start Phase 3: Git/GitHub Integration
+2. Implement GitHub URL cloning
+3. Add uncommitted changes warnings on state change
 
 ### Context Preservation
 
-**Phase 1 Goals:**
-- Establish SQLite database with proper schema
-- Implement add/remove/list commands
-- Set up configuration system
-- Store project metadata
-
-**Phase 1 Success Criteria:**
-1. User can add projects to database
-2. User can list all tracked projects
-3. User can remove projects from database
-4. Configuration file controls tracked directory
+**Phase 2 Complete - What was built:**
+- Frecency scoring with visit count tracking
+- Fuzzy matching with SkimMatcherV2
+- Query command for shell integration
+- Shell wrapper functions (bash/zsh/fish)
+- Auto-demotion after 14 days inactive
+- Auto-discovery of new projects
+- Sync command for manual refresh
 
 ---
 *State initialized: 2026-02-19*
 *Last updated: 2026-02-20*
-*Last session: Completed 02-02-PLAN.md*
+*Last session: Completed 02-05-PLAN.md*
