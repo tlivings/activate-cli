@@ -6,7 +6,6 @@
 //! - Database updates work properly
 //! - debug_fast mode skips DB updates
 
-use std::path::PathBuf;
 use std::process::Command;
 use tempfile::TempDir;
 
