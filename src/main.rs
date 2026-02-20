@@ -40,7 +40,7 @@ fn main() -> Result<()> {
 
     // Dispatch based on flags (order matters - check flags before positional)
     let result = if cli.list {
-        commands::list::execute_list(&db, cli.state.as_deref(), cli.json, cli.paths)
+        commands::list::execute_list(&db, cli.state.as_deref(), cli.json, cli.paths, cli.verbose)
     } else if let Some(ref path) = cli.add {
         commands::add::execute_add(&db, path, None)
     } else if let Some(ref name) = cli.remove {

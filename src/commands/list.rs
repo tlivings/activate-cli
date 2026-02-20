@@ -1,27 +1,31 @@
 use anyhow::{Context, Result};
+use serde::Serialize;
 use std::str::FromStr;
+use tabled::{Table, Tabled};
 
-use crate::database::Database;
-use crate::database::models::ProjectState;
+use crate::database::models::{Project, ProjectState};
 use crate::database::operations;
+use crate::database::Database;
+use crate::git::GitStatus;
 
 /// Execute the list command to display tracked projects
 /// Default: one name per line (pipe-friendly)
 /// --paths: show full paths instead of names
 /// --json: full project details as JSON
+/// --verbose: show origin and git status columns
 pub fn execute_list(
     db: &Database,
     state_filter: Option<&str>,
     json: bool,
     paths: bool,
+    verbose: bool,
 ) -> Result<()> {
     // Validate state filter if provided
     if let Some(state) = state_filter {
-        ProjectState::from_str(state)
-            .context(format!(
-                "Invalid state filter '{}'. Valid options: active, inactive, archived",
-                state
-            ))?;
+        ProjectState::from_str(state).context(format!(
+            "Invalid state filter '{}'. Valid options: active, inactive, archived",
+            state
+        ))?;
     }
 
     // Retrieve projects from database
@@ -29,10 +33,97 @@ pub fn execute_list(
         .context("Failed to retrieve projects from database")?;
 
     if json {
-        // Full JSON output
-        let json_str = serde_json::to_string_pretty(&projects)?;
-        println!("{}", json_str);
-    } else if paths {
+        if verbose {
+            // JSON with git status data
+            #[derive(Serialize)]
+            struct ProjectWithStatus {
+                #[serde(flatten)]
+                project: Project,
+                git_dirty: bool,
+                uncommitted_changes: usize,
+                unpushed_commits: usize,
+            }
+
+            let enriched: Vec<_> = projects
+                .iter()
+                .map(|p| {
+                    let (dirty, changes, unpushed) =
+                        if let Ok(status) = GitStatus::check(&p.path) {
+                            (
+                                status.has_warnings(),
+                                status.staged_count + status.unstaged_count,
+                                status.unpushed_count,
+                            )
+                        } else {
+                            (false, 0, 0)
+                        };
+                    ProjectWithStatus {
+                        project: p.clone(),
+                        git_dirty: dirty,
+                        uncommitted_changes: changes,
+                        unpushed_commits: unpushed,
+                    }
+                })
+                .collect();
+
+            println!("{}", serde_json::to_string_pretty(&enriched)?);
+        } else {
+            // Full JSON output
+            println!("{}", serde_json::to_string_pretty(&projects)?);
+        }
+        return Ok(());
+    }
+
+    if verbose {
+        // Tabular format with origin and status columns
+        #[derive(Tabled)]
+        struct Row {
+            name: String,
+            state: String,
+            origin: String,
+            status: String,
+        }
+
+        let rows: Vec<Row> = projects
+            .iter()
+            .map(|p| {
+                // Per CONTEXT.md: full URL or "local" for non-git
+                let origin = p
+                    .git_origin
+                    .as_ref()
+                    .map(|s| s.as_str())
+                    .unwrap_or("local");
+
+                let status = if let Ok(s) = GitStatus::check(&p.path) {
+                    if s.has_warnings() {
+                        format!(
+                            "dirty ({} changes, {} unpushed)",
+                            s.staged_count + s.unstaged_count,
+                            s.unpushed_count
+                        )
+                    } else {
+                        "clean".to_string()
+                    }
+                } else {
+                    "-".to_string()
+                };
+
+                Row {
+                    name: p.name.clone(),
+                    state: p.state.to_string(),
+                    origin: origin.to_string(),
+                    status,
+                }
+            })
+            .collect();
+
+        if !rows.is_empty() {
+            println!("{}", Table::new(rows));
+        }
+        return Ok(());
+    }
+
+    if paths {
         // Full paths, one per line
         for project in &projects {
             println!("{}", project.path.display());
@@ -65,7 +156,7 @@ mod tests {
         let db = setup_test_db().unwrap();
 
         // Should not error on empty database
-        let result = execute_list(&db, None, false, false);
+        let result = execute_list(&db, None, false, false, false);
         assert!(result.is_ok());
     }
 
@@ -80,9 +171,11 @@ mod tests {
         operations::add_project(&db.conn, "test-project", &project_path).unwrap();
 
         // List should succeed with all formats
-        assert!(execute_list(&db, None, false, false).is_ok()); // names
-        assert!(execute_list(&db, None, false, true).is_ok());  // paths
-        assert!(execute_list(&db, None, true, false).is_ok());  // json
+        assert!(execute_list(&db, None, false, false, false).is_ok()); // names
+        assert!(execute_list(&db, None, false, true, false).is_ok()); // paths
+        assert!(execute_list(&db, None, true, false, false).is_ok()); // json
+        assert!(execute_list(&db, None, false, false, true).is_ok()); // verbose
+        assert!(execute_list(&db, None, true, false, true).is_ok()); // json+verbose
     }
 
     #[test]
@@ -90,14 +183,17 @@ mod tests {
         let db = setup_test_db().unwrap();
 
         // Valid state filters should work
-        assert!(execute_list(&db, Some("active"), false, false).is_ok());
-        assert!(execute_list(&db, Some("inactive"), false, false).is_ok());
-        assert!(execute_list(&db, Some("archived"), false, false).is_ok());
+        assert!(execute_list(&db, Some("active"), false, false, false).is_ok());
+        assert!(execute_list(&db, Some("inactive"), false, false, false).is_ok());
+        assert!(execute_list(&db, Some("archived"), false, false, false).is_ok());
 
         // Invalid state filter should error
-        let result = execute_list(&db, Some("invalid"), false, false);
+        let result = execute_list(&db, Some("invalid"), false, false, false);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("Invalid state filter"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("Invalid state filter"));
     }
 
     #[test]
@@ -105,7 +201,7 @@ mod tests {
         let db = setup_test_db().unwrap();
 
         // State filter should be case-insensitive
-        assert!(execute_list(&db, Some("ACTIVE"), false, false).is_ok());
-        assert!(execute_list(&db, Some("Inactive"), false, false).is_ok());
+        assert!(execute_list(&db, Some("ACTIVE"), false, false, false).is_ok());
+        assert!(execute_list(&db, Some("Inactive"), false, false, false).is_ok());
     }
 }
