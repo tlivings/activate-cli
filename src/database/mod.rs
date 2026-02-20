@@ -50,14 +50,13 @@ pub fn open_database() -> Result<Connection> {
 
 /// Get the path to the database file
 fn get_database_path() -> Result<PathBuf> {
-    // Use ~/.config/activate/ as the base directory
-    let home = directories::BaseDirs::new()
-        .context("Failed to determine home directory")?
-        .home_dir()
-        .to_path_buf();
+    // Use platform-specific data directory via ProjectDirs
+    use directories::ProjectDirs;
 
-    let config_dir = home.join(".config").join("activate");
-    Ok(config_dir.join("db.sqlite"))
+    let project_dirs = ProjectDirs::from("", "", "activate")
+        .context("Failed to determine project directories")?;
+
+    Ok(project_dirs.data_dir().join("db.sqlite"))
 }
 
 #[cfg(test)]

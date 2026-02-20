@@ -87,9 +87,15 @@ pub fn list_projects(conn: &Connection, state_filter: Option<&str>) -> Result<Ve
         stmt.query_map([], Project::from_row)?
     };
 
-    projects
-        .collect::<Result<Vec<_>, _>>()
-        .context("Failed to fetch projects from database")
+    let mut result = Vec::new();
+    for project_result in projects {
+        match project_result {
+            Ok(project) => result.push(project),
+            Err(e) => eprintln!("Warning: Failed to parse project row: {}", e),
+        }
+    }
+
+    Ok(result)
 }
 
 /// Get a project by name (case-insensitive)

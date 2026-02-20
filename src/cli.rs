@@ -34,9 +34,9 @@ pub enum Commands {
         #[arg(short, long, value_enum, default_value = "table")]
         format: OutputFormat,
 
-        /// Filter projects by state (active, archived, all)
-        #[arg(short, long, default_value = "active")]
-        state: String,
+        /// Filter projects by state (active, inactive, archived)
+        #[arg(short, long)]
+        state: Option<String>,
     },
 }
 

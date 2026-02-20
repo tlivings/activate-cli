@@ -40,14 +40,7 @@ fn main() -> Result<()> {
             commands::remove::execute_remove(&db, &identifier)
         }
         Commands::List { format, state } => {
-            // Handle special "all" state by passing None
-            let state_filter = if state.to_lowercase() == "all" {
-                None
-            } else {
-                Some(state.as_str())
-            };
-
-            commands::list::execute_list(&db, state_filter, format)
+            commands::list::execute_list(&db, state.as_deref(), format)
         }
     };
 
