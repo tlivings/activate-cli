@@ -10,8 +10,3 @@ pub mod query;
 pub mod remove;
 pub mod status;
 pub mod sync;
-
-use anyhow::Result;
-
-/// Type alias for command results
-pub type CommandResult = Result<()>;

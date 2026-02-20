@@ -6,12 +6,32 @@
 <domain>
 ## Phase Boundary
 
-Clone GitHub repos via URL and track git origin for existing projects. Warn about uncommitted changes on state transitions. Auto-cleanup projects whose folders no longer exist.
+1. **CLI Refactor** - Change from subcommands to flags so positional args are always project names
+2. **Git Integration** - Clone GitHub repos via URL, track git origins, warn about uncommitted changes
+3. **TUI Enhancements** - Add deactivate/archive actions and help overlay
+4. **Documentation** - Create README.md
 
 </domain>
 
 <decisions>
 ## Implementation Decisions
+
+### CLI Structure Refactor
+- **Primary action is navigation** - `activate <name>` always means "go to project"
+- Subcommands become flags to avoid collision with project names
+- Flag mapping:
+  - `activate --list` or `-l` (was: `activate list`)
+  - `activate --add <path>` or `-a <path>` (was: `activate add`)
+  - `activate --remove <name>` or `-r <name>` (was: `activate remove`)
+  - `activate --sync` or `-s` (was: `activate sync`)
+  - `activate --status <name>` (was: `activate status`)
+  - `activate --deactivate <name>` or `-d <name>` (was: `activate deactivate`)
+  - `activate --archive <name>` (was: `activate archive`)
+  - `activate --init <shell>` (was: `activate init`)
+  - `activate --query <name>` or `-q <name>` (was: `activate query`)
+- No args = TUI (unchanged)
+- Positional arg = project name to navigate to
+- TUI Enter key = cd to selected project (outputs path for shell wrapper)
 
 ### URL & Cloning Behavior
 - Accept HTTPS and SSH URL formats (no shorthand like user/repo)

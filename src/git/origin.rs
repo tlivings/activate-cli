@@ -40,7 +40,8 @@ pub fn detect_origin(path: &Path) -> Option<String> {
 /// Check if a path is a git repository.
 ///
 /// Useful for distinguishing git vs non-git projects.
-pub fn is_git_repo(path: &Path) -> bool {
+#[cfg(test)]
+fn is_git_repo(path: &Path) -> bool {
     Repository::open(path).is_ok()
 }
 

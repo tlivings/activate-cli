@@ -89,11 +89,9 @@ fn get_schema_version(conn: &Connection) -> Result<usize> {
 
     // Get the maximum version from the schema_version table
     let version: Option<i32> = conn
-        .query_row(
-            "SELECT MAX(version) FROM schema_version",
-            [],
-            |row| row.get(0),
-        )
+        .query_row("SELECT MAX(version) FROM schema_version", [], |row| {
+            row.get(0)
+        })
         .context("Failed to get schema version")?;
 
     Ok(version.unwrap_or(0) as usize)
@@ -146,7 +144,10 @@ mod tests {
                 |row| row.get(0),
             )
             .unwrap();
-        assert!(index_count >= 2, "At least 2 indexes should exist on projects table");
+        assert!(
+            index_count >= 2,
+            "At least 2 indexes should exist on projects table"
+        );
     }
 
     #[test]
@@ -173,7 +174,12 @@ mod tests {
         for state in &["active", "inactive", "archived"] {
             let result = conn.execute(
                 "INSERT INTO projects (name, path, state, last_touched) VALUES (?1, ?2, ?3, ?4)",
-                rusqlite::params![format!("test_{}", state), format!("/path/{}", state), state, 1234567890],
+                rusqlite::params![
+                    format!("test_{}", state),
+                    format!("/path/{}", state),
+                    state,
+                    1234567890
+                ],
             );
             assert!(result.is_ok(), "Should accept state: {}", state);
         }
@@ -202,7 +208,10 @@ mod tests {
             "INSERT INTO projects (name, path, state, last_touched) VALUES ('testproject', '/test2', 'active', 1234567890)",
             [],
         );
-        assert!(result.is_err(), "Should reject duplicate name with different case");
+        assert!(
+            result.is_err(),
+            "Should reject duplicate name with different case"
+        );
     }
 
     #[test]
@@ -229,7 +238,8 @@ mod tests {
         conn.execute(
             "UPDATE projects SET visit_count = 5 WHERE name = 'test'",
             [],
-        ).unwrap();
+        )
+        .unwrap();
 
         let updated_count: i32 = conn
             .query_row(

@@ -81,6 +81,10 @@ mod tests {
         let recent = now - Duration::minutes(10);
         let score = calculate_frecency(100, recent);
         // 100 visits * 4x = 400.0
-        assert!((score - 400.0).abs() < 0.01, "Expected 400.0, got {}", score);
+        assert!(
+            (score - 400.0).abs() < 0.01,
+            "Expected 400.0, got {}",
+            score
+        );
     }
 }

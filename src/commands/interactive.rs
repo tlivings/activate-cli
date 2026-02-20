@@ -1,9 +1,9 @@
-use std::path::PathBuf;
-use anyhow::Result;
-use crate::database::Database;
-use crate::database::operations::{list_projects, update_project_state, increment_visit_and_touch};
 use crate::database::models::ProjectState;
+use crate::database::operations::{increment_visit_and_touch, list_projects, update_project_state};
+use crate::database::Database;
 use crate::navigation::frecency::calculate_frecency;
+use anyhow::Result;
+use std::path::PathBuf;
 
 pub fn execute_interactive(db: &Database) -> Result<()> {
     // Get projects sorted by frecency
@@ -22,8 +22,8 @@ pub fn execute_interactive(db: &Database) -> Result<()> {
     }
 
     // Run TUI
-    let selected: Option<PathBuf> = crate::tui::run_app(projects, db)
-        .map_err(|e| anyhow::anyhow!("TUI error: {}", e))?;
+    let selected: Option<PathBuf> =
+        crate::tui::run_app(projects, db).map_err(|e| anyhow::anyhow!("TUI error: {}", e))?;
 
     // If project selected, activate it and output path
     if let Some(path) = selected {

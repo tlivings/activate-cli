@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use anyhow::{Context, Result};
 use path_clean::PathClean;
 use std::path::{Path, PathBuf};
@@ -23,11 +25,7 @@ fn expand_tilde(path: &Path) -> PathBuf {
     if let Some(path_str) = path.to_str() {
         if path_str.starts_with("~/") || path_str == "~" {
             if let Some(home) = directories::UserDirs::new() {
-                let without_tilde = if path_str == "~" {
-                    ""
-                } else {
-                    &path_str[2..]
-                };
+                let without_tilde = if path_str == "~" { "" } else { &path_str[2..] };
                 return home.home_dir().join(without_tilde);
             }
         }

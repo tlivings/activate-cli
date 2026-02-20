@@ -78,7 +78,7 @@ pub fn format_tsv(projects: Vec<Project>) -> String {
 
 /// Convert Unix timestamp to human-readable relative time
 pub fn format_timestamp(timestamp: i64) -> String {
-    let dt = DateTime::<Utc>::from_timestamp(timestamp, 0).unwrap_or_else(|| Utc::now());
+    let dt = DateTime::<Utc>::from_timestamp(timestamp, 0).unwrap_or_else(Utc::now);
 
     let now = Utc::now();
     let duration = now.signed_duration_since(dt);

@@ -59,8 +59,8 @@ fn format_relative_time(dt: DateTime<Utc>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::database::{operations, schema};
     use crate::database::models::ProjectState;
+    use crate::database::{operations, schema};
     use chrono::Duration;
     use rusqlite::Connection;
     use tempfile::TempDir;

@@ -49,8 +49,8 @@ impl Config {
     /// Save the configuration to disk
     pub fn save(&self) -> Result<()> {
         let config_path = paths::get_config_file()?;
-        let config_str = toml::to_string_pretty(self)
-            .context("Failed to serialize configuration")?;
+        let config_str =
+            toml::to_string_pretty(self).context("Failed to serialize configuration")?;
 
         fs::write(&config_path, config_str)
             .with_context(|| format!("Failed to write config to {:?}", config_path))?;
@@ -72,7 +72,8 @@ pub fn load_config() -> Result<Config> {
     // If config file doesn't exist, create it with defaults
     if !config_path.exists() {
         let default_config = Config::default();
-        default_config.save()
+        default_config
+            .save()
             .context("Failed to save default configuration")?;
         return Ok(default_config);
     }

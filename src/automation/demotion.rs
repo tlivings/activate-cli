@@ -21,33 +21,36 @@ pub fn trigger_demotion_check(db_path: PathBuf) {
 pub fn perform_demotion_check(db_path: &std::path::Path) -> Result<usize> {
     use rusqlite::Connection;
 
-    let conn = Connection::open(db_path)
-        .context("Failed to open database for demotion check")?;
+    let conn = Connection::open(db_path).context("Failed to open database for demotion check")?;
 
     let threshold = Utc::now() - Duration::days(INACTIVE_THRESHOLD_DAYS);
     let threshold_ts = threshold.timestamp();
     let now_ts = Utc::now().timestamp();
 
-    let demoted = conn.execute(
-        "UPDATE projects SET state = 'inactive', updated_at = ?1
+    let demoted = conn
+        .execute(
+            "UPDATE projects SET state = 'inactive', updated_at = ?1
          WHERE state = 'active' AND last_touched < ?2",
-        params![now_ts, threshold_ts],
-    ).context("Failed to demote stale projects")?;
+            params![now_ts, threshold_ts],
+        )
+        .context("Failed to demote stale projects")?;
 
     Ok(demoted)
 }
 
 /// Check a single project's filesystem modification time
-pub fn get_fs_mtime(path: &std::path::Path) -> Result<chrono::DateTime<Utc>> {
+#[cfg(test)]
+fn get_fs_mtime(path: &std::path::Path) -> Result<chrono::DateTime<Utc>> {
     use std::time::SystemTime;
 
-    let metadata = std::fs::metadata(path)
-        .context("Failed to read directory metadata")?;
+    let metadata = std::fs::metadata(path).context("Failed to read directory metadata")?;
 
-    let modified = metadata.modified()
+    let modified = metadata
+        .modified()
         .context("Modification time not available")?;
 
-    let duration = modified.duration_since(SystemTime::UNIX_EPOCH)
+    let duration = modified
+        .duration_since(SystemTime::UNIX_EPOCH)
         .context("System time before UNIX epoch")?;
 
     chrono::DateTime::from_timestamp(duration.as_secs() as i64, 0)

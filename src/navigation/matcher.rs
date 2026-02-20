@@ -6,6 +6,7 @@ use crate::navigation::frecency::calculate_frecency;
 
 /// Result of matching a project against a query
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 pub struct MatchResult {
     pub project: Project,
     pub fuzzy_score: i64,

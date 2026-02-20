@@ -1,7 +1,7 @@
 use anyhow::{Context, Result};
 use chrono::Utc;
 use rusqlite::{params, Connection};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::str::FromStr;
 
 use crate::database::models::{Project, ProjectState};
@@ -184,7 +184,7 @@ pub fn update_git_origin(conn: &Connection, name: &str, origin: Option<&str>) ->
 pub fn add_project_with_state(
     conn: &Connection,
     name: &str,
-    path: &PathBuf,
+    path: &Path,
     state: ProjectState,
 ) -> Result<i64> {
     // Convert path to string for storage

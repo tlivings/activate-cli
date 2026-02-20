@@ -89,9 +89,7 @@ pub fn execute_list(
             .map(|p| {
                 // Per CONTEXT.md: full URL or "local" for non-git
                 let origin = p
-                    .git_origin
-                    .as_ref()
-                    .map(|s| s.as_str())
+                    .git_origin.as_deref()
                     .unwrap_or("local");
 
                 let status = if let Ok(s) = GitStatus::check(&p.path) {

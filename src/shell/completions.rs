@@ -11,7 +11,7 @@ pub fn generate_completions(db: &Database, current: Option<&str>) -> Result<Vec<
         .map(|p| p.name.clone())
         .filter(|name| {
             // Filter by prefix if current word provided
-            current.map_or(true, |c| name.to_lowercase().starts_with(&c.to_lowercase()))
+            current.is_none_or(|c| name.to_lowercase().starts_with(&c.to_lowercase()))
         })
         .collect();
 

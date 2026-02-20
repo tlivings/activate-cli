@@ -11,8 +11,7 @@ pub fn execute_query(db: &Database, keywords: &[String], exclude_cwd: Option<&st
     let query = keywords.join(" ");
 
     // Get all projects from database
-    let projects =
-        list_projects(&db.conn, None).context("Failed to list projects")?;
+    let projects = list_projects(&db.conn, None).context("Failed to list projects")?;
 
     if projects.is_empty() {
         bail!("No projects tracked. Use 'activate add <path>' to add projects.");
@@ -46,9 +45,9 @@ fn find_fuzzy_match(
     let results = matcher.match_projects(query, projects);
 
     // Filter out excluded project if specified
-    let best = results.iter().find(|r| {
-        exclude_name.map_or(true, |name| !r.project.name.eq_ignore_ascii_case(name))
-    });
+    let best = results
+        .iter()
+        .find(|r| exclude_name.is_none_or(|name| !r.project.name.eq_ignore_ascii_case(name)));
 
     match best {
         Some(result) => {
@@ -79,7 +78,10 @@ mod tests {
         let db = setup_test_db().unwrap();
         let result = execute_query(&db, &["test".to_string()], None);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("No projects tracked"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("No projects tracked"));
     }
 
     #[test]
@@ -122,7 +124,10 @@ mod tests {
         // Query that doesn't match anything
         let result = execute_query(&db, &["xyz123".to_string()], None);
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("No project matching"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("No project matching"));
     }
 
     #[test]

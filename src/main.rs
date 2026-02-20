@@ -56,7 +56,7 @@ fn main() -> Result<()> {
     } else if let Some(ref shell) = cli.init {
         commands::init::execute_init(shell)
     } else if let Some(ref name) = cli.query {
-        commands::query::execute_query(&db, &[name.clone()], cli.exclude.as_deref())
+        commands::query::execute_query(&db, std::slice::from_ref(name), cli.exclude.as_deref())
     } else if let Some(ref shell) = cli.completions {
         commands::completions::execute_completions(&db, shell, cli.current.as_deref())
     } else if let Some(ref name) = cli.name {

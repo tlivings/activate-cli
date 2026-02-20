@@ -60,12 +60,13 @@ impl Project {
     pub fn from_row(row: &Row) -> rusqlite::Result<Self> {
         let state_str: String = row.get("state")?;
         let state_idx = row.as_ref().column_index("state")?;
-        let state = ProjectState::from_str(&state_str)
-            .map_err(|_| rusqlite::Error::FromSqlConversionFailure(
+        let state = ProjectState::from_str(&state_str).map_err(|_| {
+            rusqlite::Error::FromSqlConversionFailure(
                 state_idx,
                 rusqlite::types::Type::Text,
                 format!("Invalid project state: {}", state_str).into(),
-            ))?;
+            )
+        })?;
 
         let path_str: String = row.get("path")?;
         let path = PathBuf::from(path_str);
@@ -83,25 +84,37 @@ impl Project {
             name: row.get("name")?,
             path,
             state,
-            last_touched: Utc.timestamp_opt(last_touched_ts, 0).single()
-                .ok_or_else(|| rusqlite::Error::FromSqlConversionFailure(
-                    last_touched_idx,
-                    rusqlite::types::Type::Integer,
-                    "Invalid timestamp".into(),
-                ))?,
+            last_touched: Utc
+                .timestamp_opt(last_touched_ts, 0)
+                .single()
+                .ok_or_else(|| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        last_touched_idx,
+                        rusqlite::types::Type::Integer,
+                        "Invalid timestamp".into(),
+                    )
+                })?,
             git_origin: row.get("git_origin")?,
-            created_at: Utc.timestamp_opt(created_at_ts, 0).single()
-                .ok_or_else(|| rusqlite::Error::FromSqlConversionFailure(
-                    created_at_idx,
-                    rusqlite::types::Type::Integer,
-                    "Invalid timestamp".into(),
-                ))?,
-            updated_at: Utc.timestamp_opt(updated_at_ts, 0).single()
-                .ok_or_else(|| rusqlite::Error::FromSqlConversionFailure(
-                    updated_at_idx,
-                    rusqlite::types::Type::Integer,
-                    "Invalid timestamp".into(),
-                ))?,
+            created_at: Utc
+                .timestamp_opt(created_at_ts, 0)
+                .single()
+                .ok_or_else(|| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        created_at_idx,
+                        rusqlite::types::Type::Integer,
+                        "Invalid timestamp".into(),
+                    )
+                })?,
+            updated_at: Utc
+                .timestamp_opt(updated_at_ts, 0)
+                .single()
+                .ok_or_else(|| {
+                    rusqlite::Error::FromSqlConversionFailure(
+                        updated_at_idx,
+                        rusqlite::types::Type::Integer,
+                        "Invalid timestamp".into(),
+                    )
+                })?,
             visit_count: row.get::<_, i64>("visit_count")? as u32,
             ignored: row.get::<_, i64>("ignored")? != 0,
         })
@@ -121,10 +134,22 @@ mod tests {
 
     #[test]
     fn test_project_state_from_str() {
-        assert_eq!(ProjectState::from_str("active").unwrap(), ProjectState::Active);
-        assert_eq!(ProjectState::from_str("ACTIVE").unwrap(), ProjectState::Active);
-        assert_eq!(ProjectState::from_str("inactive").unwrap(), ProjectState::Inactive);
-        assert_eq!(ProjectState::from_str("archived").unwrap(), ProjectState::Archived);
+        assert_eq!(
+            ProjectState::from_str("active").unwrap(),
+            ProjectState::Active
+        );
+        assert_eq!(
+            ProjectState::from_str("ACTIVE").unwrap(),
+            ProjectState::Active
+        );
+        assert_eq!(
+            ProjectState::from_str("inactive").unwrap(),
+            ProjectState::Inactive
+        );
+        assert_eq!(
+            ProjectState::from_str("archived").unwrap(),
+            ProjectState::Archived
+        );
         assert!(ProjectState::from_str("invalid").is_err());
     }
 

@@ -26,8 +26,3 @@ pub fn get_data_dir() -> Result<PathBuf> {
 pub fn get_config_file() -> Result<PathBuf> {
     Ok(get_config_dir()?.join("config.toml"))
 }
-
-/// Get the path to the SQLite database file
-pub fn get_database_file() -> Result<PathBuf> {
-    Ok(get_data_dir()?.join("projects.db"))
-}

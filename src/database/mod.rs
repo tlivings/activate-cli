@@ -26,13 +26,12 @@ pub fn open_database() -> Result<Connection> {
 
     // Ensure parent directory exists
     if let Some(parent) = db_path.parent() {
-        std::fs::create_dir_all(parent)
-            .context("Failed to create database directory")?;
+        std::fs::create_dir_all(parent).context("Failed to create database directory")?;
     }
 
     // Open the database connection
-    let conn = Connection::open(&db_path)
-        .context(format!("Failed to open database at {:?}", db_path))?;
+    let conn =
+        Connection::open(&db_path).context(format!("Failed to open database at {:?}", db_path))?;
 
     // Configure SQLite pragmas for optimal performance and safety
     conn.pragma_update(None, "journal_mode", "WAL")
@@ -53,8 +52,8 @@ pub fn get_database_path() -> Result<PathBuf> {
     // Use platform-specific data directory via ProjectDirs
     use directories::ProjectDirs;
 
-    let project_dirs = ProjectDirs::from("", "", "activate")
-        .context("Failed to determine project directories")?;
+    let project_dirs =
+        ProjectDirs::from("", "", "activate").context("Failed to determine project directories")?;
 
     Ok(project_dirs.data_dir().join("db.sqlite"))
 }
@@ -74,7 +73,11 @@ mod tests {
         assert!(result.is_ok(), "Database should open successfully");
 
         // Verify the database file was created
-        let db_path = temp_dir.path().join(".config").join("activate").join("db.sqlite");
+        let db_path = temp_dir
+            .path()
+            .join(".config")
+            .join("activate")
+            .join("db.sqlite");
         assert!(db_path.exists(), "Database file should be created");
     }
 }

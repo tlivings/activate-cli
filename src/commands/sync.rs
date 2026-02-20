@@ -16,7 +16,7 @@ pub fn execute_sync(db: &Database) -> Result<()> {
     println!("{}", "Syncing project states...".bold());
 
     // 1. Run demotion check (synchronously for feedback)
-    let db_path = db.conn.path().map(|p| PathBuf::from(p));
+    let db_path = db.conn.path().map(PathBuf::from);
     if let Some(path) = db_path {
         let demoted = perform_demotion_check(&path)?;
         if demoted > 0 {
