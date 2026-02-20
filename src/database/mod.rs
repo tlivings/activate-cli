@@ -2,6 +2,8 @@ use anyhow::{Context, Result};
 use rusqlite::Connection;
 use std::path::PathBuf;
 
+pub mod models;
+pub mod operations;
 pub mod schema;
 
 /// Wrapper struct for the SQLite connection to make it easier to pass around
