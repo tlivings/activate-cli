@@ -44,7 +44,7 @@ pub fn generate_wrapper(shell: Shell) -> String {
 fn generate_bash() -> String {
     r#"# Activate shell integration for bash
 # Add this to your ~/.bashrc:
-#   eval "$(activate init bash)"
+#   eval "$(activate --init bash)"
 
 # Change directory helper
 __activate_cd() {
@@ -53,22 +53,32 @@ __activate_cd() {
 
 # Main activation function - replaces 'activate' for navigation
 activate() {
-    local result
+    # If no arguments, run interactive mode
+    if [[ $# -eq 0 ]]; then
+        local result
+        result="$(command activate)"
+        [[ -n "$result" ]] && __activate_cd "$result"
+        return
+    fi
+
+    # Check for flags that don't need cd
     case "$1" in
-        list|status|deactivate|archive|sync|init|completions|query|help|--help|-h|--version|-V)
+        -l|--list|-a|--add|-r|--remove|-s|--sync|--status|-d|--deactivate|--archive|--init|-h|--help|-V|--version)
             command activate "$@"
             return
             ;;
-        "")
-            # No args: TUI mode
-            result="$(command activate)"
-            ;;
-        *)
-            # Args: direct query
-            result="$(command activate query --exclude "$(pwd)" -- "$@")"
-            ;;
     esac
-    [[ -n "$result" ]] && __activate_cd "$result"
+
+    # Otherwise, it's a project name - query and cd
+    local result
+    result=$(command activate --query "$1" --exclude "$PWD" 2>/dev/null)
+
+    if [[ -n "$result" && -d "$result" ]]; then
+        __activate_cd "$result"
+    else
+        # If query fails, pass through to activate (might be URL or create prompt)
+        command activate "$@"
+    fi
 }
 
 # Tab completion
@@ -76,20 +86,20 @@ _activate_completions() {
     local cur="${COMP_WORDS[COMP_CWORD]}"
     local prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    # Complete subcommands
+    # Complete flags
     if [[ ${COMP_CWORD} -eq 1 ]]; then
-        COMPREPLY=($(compgen -W "list status deactivate archive sync init" -- "$cur"))
+        COMPREPLY=($(compgen -W "--list --add --remove --sync --status --deactivate --archive --init -l -a -r -s -d" -- "$cur"))
         # Also add project names for direct navigation
         local projects
-        projects="$(command activate completions bash --current "$cur" 2>/dev/null)"
+        projects="$(command activate --completions bash --current "$cur" 2>/dev/null)"
         COMPREPLY+=($projects)
         return
     fi
 
-    # Complete project names for relevant commands
+    # Complete project names for relevant flags
     case "$prev" in
-        status|deactivate|archive)
-            COMPREPLY=($(command activate completions bash --current "$cur" 2>/dev/null))
+        --status|--deactivate|-d|--archive|--remove|-r)
+            COMPREPLY=($(command activate --completions bash --current "$cur" 2>/dev/null))
             ;;
     esac
 }
@@ -101,7 +111,7 @@ complete -F _activate_completions activate
 fn generate_zsh() -> String {
     r#"# Activate shell integration for zsh
 # Add this to your ~/.zshrc:
-#   eval "$(activate init zsh)"
+#   eval "$(activate --init zsh)"
 
 # Change directory helper
 __activate_cd() {
@@ -110,45 +120,61 @@ __activate_cd() {
 
 # Main activation function
 activate() {
-    local result
+    # If no arguments, run interactive mode
+    if [[ $# -eq 0 ]]; then
+        local result
+        result="$(command activate)"
+        [[ -n "$result" ]] && __activate_cd "$result"
+        return
+    fi
+
+    # Check for flags that don't need cd
     case "$1" in
-        list|status|deactivate|archive|sync|init|completions|query|help|--help|-h|--version|-V)
+        -l|--list|-a|--add|-r|--remove|-s|--sync|--status|-d|--deactivate|--archive|--init|-h|--help|-V|--version)
             command activate "$@"
             return
             ;;
-        "")
-            # No args: TUI mode
-            result="$(command activate)"
-            ;;
-        *)
-            # Args: direct query
-            result="$(command activate query --exclude "$(pwd)" -- "$@")"
-            ;;
     esac
-    [[ -n "$result" ]] && __activate_cd "$result"
+
+    # Otherwise, query and cd
+    local result
+    result=$(command activate --query "$1" --exclude "$PWD" 2>/dev/null)
+
+    if [[ -n "$result" && -d "$result" ]]; then
+        __activate_cd "$result"
+    else
+        command activate "$@"
+    fi
 }
 
 # Tab completion
 _activate() {
-    local -a commands projects
-    commands=(
-        'list:List all tracked projects'
-        'status:Show project status'
-        'deactivate:Mark project as inactive'
-        'archive:Archive a project'
-        'sync:Sync project states'
-        'init:Initialize shell integration'
+    local -a flags projects
+    flags=(
+        '--list:List all tracked projects'
+        '-l:List all tracked projects'
+        '--add:Add a project by path'
+        '-a:Add a project by path'
+        '--remove:Remove a project by name'
+        '-r:Remove a project by name'
+        '--sync:Synchronize project states'
+        '-s:Synchronize project states'
+        '--status:Show project status'
+        '--deactivate:Deactivate a project'
+        '-d:Deactivate a project'
+        '--archive:Archive a project'
+        '--init:Initialize shell integration'
     )
 
     if (( CURRENT == 2 )); then
-        _describe 'command' commands
+        _describe 'flag' flags
         # Also complete project names
-        projects=(${(f)"$(command activate completions zsh 2>/dev/null)"})
+        projects=(${(f)"$(command activate --completions zsh 2>/dev/null)"})
         compadd -a projects
     else
         case "${words[2]}" in
-            status|deactivate|archive)
-                projects=(${(f)"$(command activate completions zsh 2>/dev/null)"})
+            --status|--deactivate|-d|--archive|--remove|-r)
+                projects=(${(f)"$(command activate --completions zsh 2>/dev/null)"})
                 compadd -a projects
                 ;;
         esac
@@ -162,36 +188,47 @@ compdef _activate activate
 fn generate_fish() -> String {
     r#"# Activate shell integration for fish
 # Add this to your ~/.config/fish/config.fish:
-#   activate init fish | source
+#   activate --init fish | source
 
 function activate
-    set -l cmd $argv[1]
-    switch "$cmd"
-        case list status deactivate archive sync init completions query help -h --help -V --version
+    # If no arguments, run interactive mode
+    if test (count $argv) -eq 0
+        set -l result (command activate)
+        and cd $result
+        return
+    end
+
+    # Check for flags that don't need cd
+    switch $argv[1]
+        case -l --list -a --add -r --remove -s --sync --status -d --deactivate --archive --init -h --help -V --version
             command activate $argv
-        case ''
-            # No args: TUI mode
-            set -l result (command activate)
-            and cd $result
-        case '*'
-            # Args: direct query
-            set -l result (command activate query --exclude (pwd) -- $argv)
-            and cd $result
+            return
+    end
+
+    # Otherwise, query and cd
+    set -l result (command activate --query $argv[1] --exclude $PWD 2>/dev/null)
+
+    if test -n "$result"; and test -d "$result"
+        cd $result
+    else
+        command activate $argv
     end
 end
 
 # Tab completion
 complete -c activate -f
-complete -c activate -n "__fish_use_subcommand" -a "list" -d "List projects"
-complete -c activate -n "__fish_use_subcommand" -a "status" -d "Show project status"
-complete -c activate -n "__fish_use_subcommand" -a "deactivate" -d "Deactivate a project"
-complete -c activate -n "__fish_use_subcommand" -a "archive" -d "Archive a project"
-complete -c activate -n "__fish_use_subcommand" -a "sync" -d "Sync project states"
-complete -c activate -n "__fish_use_subcommand" -a "init" -d "Initialize shell"
+complete -c activate -n "__fish_use_subcommand" -s l -l list -d "List projects"
+complete -c activate -n "__fish_use_subcommand" -s a -l add -d "Add a project"
+complete -c activate -n "__fish_use_subcommand" -s r -l remove -d "Remove a project"
+complete -c activate -n "__fish_use_subcommand" -s s -l sync -d "Sync project states"
+complete -c activate -n "__fish_use_subcommand" -l status -d "Show project status"
+complete -c activate -n "__fish_use_subcommand" -s d -l deactivate -d "Deactivate a project"
+complete -c activate -n "__fish_use_subcommand" -l archive -d "Archive a project"
+complete -c activate -n "__fish_use_subcommand" -l init -d "Initialize shell"
 
 # Complete project names for direct navigation and commands
-complete -c activate -n "__fish_use_subcommand" -a "(command activate completions fish 2>/dev/null)"
-complete -c activate -n "__fish_seen_subcommand_from status deactivate archive" -a "(command activate completions fish 2>/dev/null)"
+complete -c activate -n "__fish_use_subcommand" -a "(command activate --completions fish 2>/dev/null)"
+complete -c activate -n "__fish_seen_subcommand_from --status --deactivate -d --archive --remove -r" -a "(command activate --completions fish 2>/dev/null)"
 "#
     .to_string()
 }
