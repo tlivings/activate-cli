@@ -103,15 +103,15 @@ Plans:
 
 **Dependencies:** Phase 2 (state management for marking cloned projects as active)
 
-**Status:** Planning Complete
+**Status:** Complete
 
 **Plans:** 4 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — CLI refactor from subcommands to flags (Wave 1)
-- [ ] 03-02-PLAN.md — Git module foundation: clone, status, origin detection (Wave 1)
-- [ ] 03-03-PLAN.md — Git integration in commands: URL cloning, warnings, list verbose (Wave 2)
-- [ ] 03-04-PLAN.md — TUI enhancements and README documentation (Wave 3)
+- [x] 03-01-PLAN.md — CLI refactor from subcommands to flags (Wave 1)
+- [x] 03-02-PLAN.md — Git module foundation: clone, status, origin detection (Wave 1)
+- [x] 03-03-PLAN.md — Git integration in commands: URL cloning, warnings, list verbose (Wave 2)
+- [x] 03-04-PLAN.md — TUI enhancements and README documentation (Wave 3)
 
 **Requirements:**
 - CLI-01: CLI uses flags instead of subcommands (--list, --add, --remove, etc.)
@@ -144,9 +144,9 @@ Plans:
 |-------|--------|---------|-----------|----------|
 | Phase 1: Foundation & Core CRUD | Complete | 2026-02-19 | 2026-02-20 | 100% |
 | Phase 2: State Management & Navigation | Complete | 2026-02-20 | 2026-02-20 | 100% |
-| Phase 3: Git Integration + CLI Refactor | Planning Complete | - | - | 0% |
+| Phase 3: Git Integration + CLI Refactor | Complete | 2026-02-20 | 2026-02-20 | 100% |
 
-**Overall:** 66% (2/3 phases complete)
+**Overall:** 100% (3/3 phases complete)
 
 ---
 
