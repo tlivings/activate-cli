@@ -9,16 +9,16 @@
 
 **Core Value:** Quick access to any tracked project - type `activate <name>` and you're instantly in that directory, ready to work.
 
-**Current Focus:** Phase 2 complete - automation, sync, and state management implemented
+**Current Focus:** Phase 2 complete - TUI interface added as default project selector
 
 ## Current Position
 
 | Dimension | Value |
 |-----------|-------|
 | **Current Phase** | Phase 2: State Management & Navigation |
-| **Current Plan** | Plan 5 of 5 |
+| **Current Plan** | Plan 6 of 6 |
 | **Plan Status** | Complete |
-| **Implementation** | Phase 2 complete |
+| **Implementation** | Phase 2 complete with TUI |
 
 ### Progress Bar
 
@@ -40,6 +40,7 @@
 | Phase 02-state-management-navigation P02 | 356s | 2 tasks | 12 files |
 | Phase 02-state-management-navigation P05 | 238s | 2 tasks | 10 files |
 | Phase 02-state-management-navigation P03 | 447s | 3 tasks | 11 files |
+| Phase 02-state-management-navigation P06 | 330s | 6 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -63,6 +64,8 @@
 | 14-day threshold for auto-demotion | As specified in requirements | 2026-02-20 |
 | Discovered projects as inactive | User must activate to mark active | 2026-02-20 |
 | atty for TTY detection | Interactive prompts in create-on-activate | 2026-02-20 |
+| ratatui over tui-rs | ratatui is the actively maintained fork | 2026-02-20 |
+| Pipe-friendly list default | TUI replaces table format for human viewing | 2026-02-20 |
 
 ### Active TODOs
 
@@ -91,6 +94,8 @@ None currently identified.
 - walkdir 2.5 for directory scanning
 - fuzzy-matcher 0.3 for fuzzy matching
 - serde/toml for configuration
+- ratatui 0.29 for TUI
+- crossterm 0.28 for terminal handling
 
 **Critical implementation notes:**
 - Must canonicalize paths before any database operations
@@ -102,7 +107,7 @@ None currently identified.
 
 ### Last Session Summary
 
-Phase 2 Plan 3 re-executed. Implemented state management commands (activate, deactivate, archive, status). Added database operations for state changes and visit tracking. Activate supports create-on-activate with TTY detection.
+Phase 2 Plan 6 executed. Added ratatui TUI as default interface. Running `activate` with no args opens interactive project selector with fuzzy filtering. Projects sorted by frecency. Vim keybindings (j/k) alongside arrows. List command simplified to pipe-friendly output.
 
 ### Entry Points for Next Session
 
@@ -120,8 +125,10 @@ Phase 2 Plan 3 re-executed. Implemented state management commands (activate, dea
 - Auto-demotion after 14 days inactive
 - Auto-discovery of new projects
 - Sync command for manual refresh
+- Ratatui TUI as default interface
+- Three-panel layout (list, status, input)
 
 ---
 *State initialized: 2026-02-19*
 *Last updated: 2026-02-20*
-*Last session: Re-executed 02-03-PLAN.md*
+*Last session: Executed 02-06-PLAN.md*
