@@ -1,7 +1,7 @@
 use fuzzy_matcher::skim::SkimMatcherV2;
 use fuzzy_matcher::FuzzyMatcher;
 
-use crate::database::models::Project;
+use crate::database::models::{Project, ProjectState};
 use crate::navigation::frecency::calculate_frecency;
 
 /// Result of matching a project against a query
@@ -27,7 +27,7 @@ impl ProjectMatcher {
     }
 
     /// Match projects against query, returning sorted results
-    /// Combines fuzzy match score with frecency for ranking
+    /// Sorted by state first (Active, Inactive, Archived), then by combined score
     pub fn match_projects(&self, query: &str, projects: &[Project]) -> Vec<MatchResult> {
         let mut results: Vec<_> = projects
             .iter()
@@ -45,9 +45,22 @@ impl ProjectMatcher {
             .collect();
 
         results.sort_by(|a, b| {
-            b.combined_score
-                .partial_cmp(&a.combined_score)
-                .unwrap_or(std::cmp::Ordering::Equal)
+            // Sort by state priority first
+            let state_order = |s: &ProjectState| match s {
+                ProjectState::Active => 1,
+                ProjectState::Inactive => 2,
+                ProjectState::Archived => 3,
+            };
+
+            match state_order(&a.project.state).cmp(&state_order(&b.project.state)) {
+                std::cmp::Ordering::Equal => {
+                    // Within same state, sort by combined score (higher first)
+                    b.combined_score
+                        .partial_cmp(&a.combined_score)
+                        .unwrap_or(std::cmp::Ordering::Equal)
+                }
+                other => other,
+            }
         });
         results
     }
@@ -124,17 +137,42 @@ mod tests {
     }
 
     #[test]
-    fn test_results_sorted_by_combined_score() {
+    fn test_results_sorted_by_state_then_score() {
         let matcher = ProjectMatcher::new();
+
+        // Create projects with different states and visit counts
+        let mut proj_active_low = create_test_project("project-active-low", 1);
+        proj_active_low.state = ProjectState::Active;
+
+        let mut proj_active_high = create_test_project("project-active-high", 100);
+        proj_active_high.state = ProjectState::Active;
+
+        let mut proj_inactive = create_test_project("project-inactive", 200);
+        proj_inactive.state = ProjectState::Inactive;
+
+        let mut proj_archived = create_test_project("project-archived", 500);
+        proj_archived.state = ProjectState::Archived;
+
         let projects = vec![
-            create_test_project("project-alpha", 100), // High visit count
-            create_test_project("project-beta", 1),    // Low visit count
+            proj_archived.clone(),
+            proj_inactive.clone(),
+            proj_active_low.clone(),
+            proj_active_high.clone(),
         ];
 
         let results = matcher.match_projects("proj", &projects);
-        assert_eq!(results.len(), 2);
-        // Higher combined score (visit_count) should come first
-        assert_eq!(results[0].project.name, "project-alpha");
+        assert_eq!(results.len(), 4);
+
+        // Should be sorted by state first (Active, Inactive, Archived)
+        // Within Active state, higher visit count first
+        assert_eq!(results[0].project.state, ProjectState::Active);
+        assert_eq!(results[0].project.name, "project-active-high");
+        assert_eq!(results[1].project.state, ProjectState::Active);
+        assert_eq!(results[1].project.name, "project-active-low");
+        assert_eq!(results[2].project.state, ProjectState::Inactive);
+        assert_eq!(results[2].project.name, "project-inactive");
+        assert_eq!(results[3].project.state, ProjectState::Archived);
+        assert_eq!(results[3].project.name, "project-archived");
     }
 
     #[test]
