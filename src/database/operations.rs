@@ -68,12 +68,12 @@ pub fn list_projects(conn: &Connection, state_filter: Option<&str>) -> Result<Ve
         ProjectState::from_str(state)
             .context("Invalid state filter")?;
 
-        "SELECT id, name, path, state, last_touched, git_origin, created_at, updated_at
+        "SELECT id, name, path, state, last_touched, visit_count, git_origin, created_at, updated_at
          FROM projects
          WHERE state = ?1
          ORDER BY last_touched DESC"
     } else {
-        "SELECT id, name, path, state, last_touched, git_origin, created_at, updated_at
+        "SELECT id, name, path, state, last_touched, visit_count, git_origin, created_at, updated_at
          FROM projects
          ORDER BY last_touched DESC"
     };
@@ -101,7 +101,7 @@ pub fn list_projects(conn: &Connection, state_filter: Option<&str>) -> Result<Ve
 /// Get a project by name (case-insensitive)
 pub fn get_project_by_name(conn: &Connection, name: &str) -> Result<Option<Project>> {
     let mut stmt = conn.prepare(
-        "SELECT id, name, path, state, last_touched, git_origin, created_at, updated_at
+        "SELECT id, name, path, state, last_touched, visit_count, git_origin, created_at, updated_at
          FROM projects
          WHERE name = ?1 COLLATE NOCASE"
     )

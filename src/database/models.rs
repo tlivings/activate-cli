@@ -49,6 +49,8 @@ pub struct Project {
     pub git_origin: Option<String>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    /// Visit count for frecency scoring
+    pub visit_count: u32,
 }
 
 impl Project {
@@ -98,6 +100,7 @@ impl Project {
                     rusqlite::types::Type::Integer,
                     "Invalid timestamp".into(),
                 ))?,
+            visit_count: row.get::<_, i64>("visit_count")? as u32,
         })
     }
 }

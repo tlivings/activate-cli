@@ -9,6 +9,7 @@ mod commands;
 mod config;
 mod database;
 mod error;
+mod navigation;
 mod output;
 mod utils;
 

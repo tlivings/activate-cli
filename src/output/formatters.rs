@@ -147,6 +147,7 @@ mod tests {
             git_origin: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
+            visit_count: 0,
         }
     }
 
