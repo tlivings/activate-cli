@@ -135,7 +135,7 @@ fn render_input(frame: &mut Frame, app: &App, area: Rect) {
         ""
     };
     let help_hint = if app.input.is_empty() {
-        "  i:ignore I:toggle-hidden"
+        "  d:deactivate a:archive i:ignore c:config ?:help"
     } else {
         ""
     };
