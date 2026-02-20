@@ -130,6 +130,39 @@ impl App {
     }
 
     pub fn handle_key(&mut self, code: KeyCode, modifiers: KeyModifiers) {
+        // Overlay handling - when help or settings is shown, block most keys
+        if self.show_help || self.show_settings {
+            match (code, modifiers) {
+                // ESC or Ctrl+C: close overlay first, then quit if both closed
+                (KeyCode::Esc, _) | (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
+                    if self.show_help {
+                        self.show_help = false;
+                    } else if self.show_settings {
+                        self.show_settings = false;
+                    } else {
+                        self.should_quit = true;
+                    }
+                }
+                // ? always toggles help
+                (KeyCode::Char('?'), _) => {
+                    self.show_help = !self.show_help;
+                    self.show_settings = false;
+                }
+                // 'c' in settings toggles settings
+                (KeyCode::Char('c'), KeyModifiers::NONE) if self.show_settings => {
+                    self.show_settings = false;
+                }
+                // Edit config (only in settings view)
+                (KeyCode::Char('e'), KeyModifiers::NONE) if self.show_settings => {
+                    self.open_config_request = true;
+                    self.should_quit = true;
+                }
+                // Block all other keys when overlay is shown
+                _ => {}
+            }
+            return;
+        }
+
         // Command mode handling
         if self.command_mode {
             match (code, modifiers) {
@@ -198,11 +231,6 @@ impl App {
             (KeyCode::Char('?'), _) => {
                 self.show_help = !self.show_help;
                 self.show_settings = false;
-            }
-            // Edit config (only in settings view)
-            (KeyCode::Char('e'), KeyModifiers::NONE) if self.show_settings => {
-                self.open_config_request = true;
-                self.should_quit = true;
             }
             // Enter command mode
             (KeyCode::Char('/'), KeyModifiers::NONE) => {
