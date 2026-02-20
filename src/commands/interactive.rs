@@ -2,20 +2,12 @@ use crate::config::open_config_in_editor;
 use crate::database::models::ProjectState;
 use crate::database::operations::{increment_visit_and_touch, list_projects, update_project_state};
 use crate::database::Database;
-use crate::navigation::frecency::calculate_frecency;
 use anyhow::Result;
 use std::io::{self, Write};
 
 pub fn execute_interactive(db: &Database, debug_fast: bool) -> Result<()> {
-    // Get projects sorted by frecency
-    let mut projects = list_projects(&db.conn, None)?;
-
-    // Sort by frecency (highest first)
-    projects.sort_by(|a, b| {
-        let fa = calculate_frecency(a.visit_count, a.last_touched);
-        let fb = calculate_frecency(b.visit_count, b.last_touched);
-        fb.partial_cmp(&fa).unwrap_or(std::cmp::Ordering::Equal)
-    });
+    // Get projects sorted by state (Active, Inactive, Archived), then by frecency
+    let projects = list_projects(&db.conn, None)?;
 
     if projects.is_empty() {
         eprintln!("No projects tracked. Run `activate --sync` to discover projects.");
