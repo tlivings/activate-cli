@@ -52,16 +52,17 @@ Plans:
 
 **Dependencies:** Phase 1 (database and config foundation)
 
-**Status:** Planning Complete
+**Status:** Complete
 
-**Plans:** 5 plans
+**Plans:** 6 plans
 
 Plans:
-- [ ] 02-01-PLAN.md — Database migration for visit_count and frecency calculation module
-- [ ] 02-02-PLAN.md — Fuzzy matching module and query command
-- [ ] 02-03-PLAN.md — State management commands (activate/deactivate/archive/status)
-- [ ] 02-04-PLAN.md — Shell integration (init, wrapper generation, completions)
-- [ ] 02-05-PLAN.md — Automation (auto-demotion, sync, discovery)
+- [x] 02-01-PLAN.md — Database migration for visit_count and frecency calculation module
+- [x] 02-02-PLAN.md — Fuzzy matching module and query command
+- [x] 02-03-PLAN.md — State management commands (activate/deactivate/archive/status)
+- [x] 02-04-PLAN.md — Shell integration (init, wrapper generation, completions)
+- [x] 02-05-PLAN.md — Automation (auto-demotion, sync, discovery)
+- [x] 02-06-PLAN.md — TUI interface with ratatui
 
 **Requirements:**
 - NAV-01: User can navigate to project by typing project name
@@ -102,6 +103,15 @@ Plans:
 
 **Dependencies:** Phase 2 (state management for marking cloned projects as active)
 
+**Status:** Planning Complete
+
+**Plans:** 3 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — Git module foundation (clone, status, origin detection)
+- [ ] 03-02-PLAN.md — Git integration in commands (URL cloning, warnings, list verbose)
+- [ ] 03-03-PLAN.md — TUI enhancements and README documentation
+
 **Requirements:**
 - GIT-01: User can activate with GitHub URL to clone repo
 - GIT-02: Cloned repo is extracted to folder name and marked as active
@@ -112,6 +122,10 @@ Plans:
 - GIT-07: Projects without folders are marked as "missing" in database
 - GIT-08: Missing projects without git origin are auto-removed from database
 - GIT-09: User can force remove project from database even if missing
+- TUI-01: TUI deactivate action - 'd' key deactivates selected project
+- TUI-02: TUI archive action - 'a' key archives selected project
+- TUI-03: TUI help section - '?' key shows keybinding help overlay
+- DOC-01: README.md - Simple, clear project documentation
 
 **Success Criteria:**
 1. User can run `activate https://github.com/user/repo` and have it cloned, added to database, and activated
@@ -126,10 +140,10 @@ Plans:
 | Phase | Status | Started | Completed | Progress |
 |-------|--------|---------|-----------|----------|
 | Phase 1: Foundation & Core CRUD | Complete | 2026-02-19 | 2026-02-20 | 100% |
-| Phase 2: State Management & Navigation | Planning Complete | - | - | 0% |
-| Phase 3: Git Integration | Not Started | - | - | 0% |
+| Phase 2: State Management & Navigation | Complete | 2026-02-20 | 2026-02-20 | 100% |
+| Phase 3: Git Integration | Planning Complete | - | - | 0% |
 
-**Overall:** 33% (1/3 phases complete)
+**Overall:** 66% (2/3 phases complete)
 
 ---
 
@@ -150,4 +164,4 @@ The critical path is Phase 1 -> Phase 2 -> Phase 3. Each phase depends on the pr
 
 ---
 *Roadmap created: 2026-02-19*
-*Last updated: 2026-02-19*
+*Last updated: 2026-02-20*
