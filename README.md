@@ -2,6 +2,23 @@
 
 Quick access to any tracked project. Type `activate <name>` and you're instantly in that directory, ready to work.
 
+## Why?
+
+If you work across multiple projects, you know the pain:
+
+- **Slow context switching** - `cd ~/Development/client-work/project-name`, `cd ../../personal/other-project`, repeat
+- **Path fatigue** - Memorizing or searching for exact paths breaks your flow
+- **Lost projects** - That side project you started months ago? Good luck finding it
+- **Tab completion fails** - Standard shell completion doesn't know which projects matter to you
+
+`activate` solves this by:
+- **Learning your habits** - Frequently and recently used projects surface first
+- **Working like your brain** - Fuzzy match on partial names, no exact paths needed
+- **Staying fast** - No git operations or filesystem scans during navigation
+- **Fitting your workflow** - Works with your shell, your terminal, your existing projects
+
+Stop navigating file trees. Start working.
+
 ## Features
 
 - **Fuzzy project navigation** - Type partial names to find projects
