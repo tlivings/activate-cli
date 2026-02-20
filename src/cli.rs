@@ -42,6 +42,10 @@ pub struct Cli {
     #[arg(long, value_name = "SHELL")]
     pub init: Option<String>,
 
+    /// Open configuration file in editor
+    #[arg(short = 'c', long)]
+    pub config: bool,
+
     /// Query for project path (used by shell wrapper)
     #[arg(short, long, value_name = "NAME")]
     pub query: Option<String>,

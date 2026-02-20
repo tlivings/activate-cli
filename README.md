@@ -20,6 +20,23 @@ cd activate
 cargo install --path .
 ```
 
+### First-time setup
+
+On first run, activate will prompt you to set your projects directory:
+
+```bash
+$ activate
+Welcome to activate!
+
+First-time setup required.
+
+Enter your projects directory (e.g., ~/Development): ~/Projects
+Configuration saved to: ~/.config/activate/config.toml
+Projects directory: /Users/you/Projects
+
+Run 'activate --sync' to discover existing projects.
+```
+
 ### Shell setup
 
 Add to your shell config (~/.bashrc, ~/.zshrc, or ~/.config/fish/config.fish):
@@ -86,6 +103,38 @@ activate --archive project-name
 activate --status project-name
 ```
 
+## Configuration
+
+### Edit configuration
+
+```bash
+# Open config in your editor
+activate --config
+activate -c
+```
+
+Or in the TUI, press `c` for settings, then `e` to edit.
+
+### Config file
+
+Location: `~/.config/activate/config.toml`
+
+```toml
+# Directory containing your projects (required)
+tracked_directory = "/Users/you/Development"
+
+# Patterns to ignore during auto-discovery
+ignore_patterns = [
+    ".git",
+    "node_modules",
+    "target",
+    ".venv",
+    "venv",
+    "__pycache__",
+    ".DS_Store",
+]
+```
+
 ## Interactive TUI
 
 Run `activate` with no arguments to open the interactive browser.
@@ -98,24 +147,9 @@ Run `activate` with no arguments to open the interactive browser.
 | a | Archive project |
 | i | Toggle ignore |
 | I | Show/hide ignored |
+| c | Settings |
 | ? | Help |
 | Esc | Quit |
-
-## Configuration
-
-Config file location: `~/.config/activate/config.toml`
-
-```toml
-# Directory containing your projects
-tracked_directory = "~/Development"
-
-# Patterns to ignore during auto-discovery
-ignore_patterns = [
-    "node_modules",
-    ".git",
-    "target",
-]
-```
 
 ## Project states
 

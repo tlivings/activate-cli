@@ -13,6 +13,8 @@ pub struct App {
     pub show_ignored: bool,
     pub toggle_ignore_request: Option<String>, // Project name to toggle
     pub show_help: bool,
+    pub show_settings: bool,
+    pub open_config_request: bool, // Request to open config in editor
     pub deactivate_request: Option<String>,
     pub archive_request: Option<String>,
     matcher: ProjectMatcher,
@@ -37,6 +39,8 @@ impl App {
             show_ignored: false,
             toggle_ignore_request: None,
             show_help: false,
+            show_settings: false,
+            open_config_request: false,
             deactivate_request: None,
             archive_request: None,
             matcher: ProjectMatcher::new(),
@@ -144,6 +148,17 @@ impl App {
             // Help toggle
             (KeyCode::Char('?'), _) => {
                 self.show_help = !self.show_help;
+                self.show_settings = false; // Close settings if open
+            }
+            // Settings toggle (lowercase c, only when not typing)
+            (KeyCode::Char('c'), KeyModifiers::NONE) if self.input.is_empty() => {
+                self.show_settings = !self.show_settings;
+                self.show_help = false; // Close help if open
+            }
+            // Edit config (lowercase e, only in settings view)
+            (KeyCode::Char('e'), KeyModifiers::NONE) if self.show_settings => {
+                self.open_config_request = true;
+                self.should_quit = true; // Exit TUI to open editor
             }
             // Deactivate selected project (lowercase d, only when not typing)
             (KeyCode::Char('d'), KeyModifiers::NONE) if self.input.is_empty() => {
@@ -182,7 +197,13 @@ use crossterm::{
 use ratatui::{backend::CrosstermBackend, Terminal};
 use std::io;
 
-pub fn run_app(projects: Vec<Project>, db: &Database) -> io::Result<Option<PathBuf>> {
+/// Result of running the TUI app
+pub struct TuiResult {
+    pub selected_path: Option<PathBuf>,
+    pub open_config: bool,
+}
+
+pub fn run_app(projects: Vec<Project>, db: &Database) -> io::Result<TuiResult> {
     // Setup terminal
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -249,5 +270,8 @@ pub fn run_app(projects: Vec<Project>, db: &Database) -> io::Result<Option<PathB
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
 
-    Ok(app.selected_path)
+    Ok(TuiResult {
+        selected_path: app.selected_path,
+        open_config: app.open_config_request,
+    })
 }

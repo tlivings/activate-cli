@@ -70,7 +70,7 @@ fn clone_and_activate(db: &Database, url: &str) -> Result<()> {
         .ok_or_else(|| anyhow::anyhow!("Could not extract repository name from URL"))?;
 
     // Per CONTEXT.md: clone to tracked_directory/<repo-name>
-    let dest = config.tracked_directory.join(&repo_name);
+    let dest = config.tracked_directory().join(&repo_name);
 
     // Per CONTEXT.md: error and abort if folder exists
     if dest.exists() {
@@ -112,7 +112,7 @@ fn clone_and_activate(db: &Database, url: &str) -> Result<()> {
 fn create_new_project(db: &Database, name: &str) -> Result<()> {
     // Load config to get tracked directory
     let config = Config::load()?;
-    let new_path = config.tracked_directory.join(name);
+    let new_path = config.tracked_directory().join(name);
 
     // Create directory
     std::fs::create_dir_all(&new_path)

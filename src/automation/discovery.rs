@@ -10,7 +10,7 @@ use crate::database::Database;
 /// Discover new projects in the tracked directory
 /// Returns list of newly discovered paths
 pub fn discover_new_projects(db: &Database, config: &Config) -> Result<Vec<PathBuf>> {
-    let tracked_dir = &config.tracked_directory;
+    let tracked_dir = config.tracked_directory();
 
     if !tracked_dir.exists() {
         return Ok(vec![]);
@@ -117,7 +117,7 @@ mod tests {
         let db = Database { conn };
 
         let config = Config {
-            tracked_directory: temp.path().to_path_buf(),
+            tracked_directory: Some(temp.path().to_path_buf()),
             ignore_patterns: vec![],
             database_path: None,
         };
@@ -145,7 +145,7 @@ mod tests {
         let db = Database { conn };
 
         let config = Config {
-            tracked_directory: temp.path().to_path_buf(),
+            tracked_directory: Some(temp.path().to_path_buf()),
             ignore_patterns: vec![],
             database_path: None,
         };

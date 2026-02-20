@@ -6,6 +6,7 @@ pub const KEYBINDINGS: &[(&str, &str)] = &[
     ("a", "Archive selected project"),
     ("i", "Toggle ignore on selected"),
     ("I", "Show/hide ignored projects"),
+    ("c", "Settings"),
     ("?", "Toggle this help"),
     ("Esc or Ctrl+C", "Quit"),
 ];

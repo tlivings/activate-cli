@@ -61,7 +61,7 @@ pub fn execute_sync(db: &Database) -> Result<()> {
 
     // 4. Remove projects that are missing or not direct children of tracked_directory
     let projects = list_projects(&db.conn, None)?;
-    let tracked_canonical = config.tracked_directory.canonicalize().ok();
+    let tracked_canonical = config.tracked_directory().canonicalize().ok();
 
     let invalid: Vec<_> = projects
         .iter()

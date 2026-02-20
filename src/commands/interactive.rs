@@ -1,9 +1,9 @@
+use crate::config::open_config_in_editor;
 use crate::database::models::ProjectState;
 use crate::database::operations::{increment_visit_and_touch, list_projects, update_project_state};
 use crate::database::Database;
 use crate::navigation::frecency::calculate_frecency;
 use anyhow::Result;
-use std::path::PathBuf;
 
 pub fn execute_interactive(db: &Database) -> Result<()> {
     // Get projects sorted by frecency
@@ -17,16 +17,21 @@ pub fn execute_interactive(db: &Database) -> Result<()> {
     });
 
     if projects.is_empty() {
-        eprintln!("No projects tracked. Run `activate sync` to discover projects.");
+        eprintln!("No projects tracked. Run `activate --sync` to discover projects.");
         return Ok(());
     }
 
     // Run TUI
-    let selected: Option<PathBuf> =
+    let result =
         crate::tui::run_app(projects, db).map_err(|e| anyhow::anyhow!("TUI error: {}", e))?;
 
+    // If user requested to open config, do that
+    if result.open_config {
+        return open_config_in_editor();
+    }
+
     // If project selected, activate it and output path
-    if let Some(path) = selected {
+    if let Some(path) = result.selected_path {
         // Find project name for database update
         if let Some(file_name) = path.file_name() {
             if let Some(name) = file_name.to_str() {

@@ -19,18 +19,41 @@ mod utils;
 
 use automation::trigger_demotion_check;
 use cli::Cli;
-use config::load_config;
+use config::{load_config, open_config_in_editor, run_first_time_setup};
 use database::{get_database_path, Database};
 
 fn main() -> Result<()> {
+    let cli = Cli::parse();
+
+    // Handle --config flag first (doesn't need full setup)
+    if cli.config {
+        return open_config_in_editor();
+    }
+
+    // Handle --init flag (shell setup doesn't need config)
+    if let Some(ref shell) = cli.init {
+        return commands::init::execute_init(shell);
+    }
+
+    // Load config and check if first-time setup is needed
+    let config = load_config().context("Failed to load configuration")?;
+
+    if !config.is_configured() {
+        // Check if running in interactive mode
+        if atty::is(atty::Stream::Stdin) {
+            let _ = run_first_time_setup()?;
+        } else {
+            eprintln!("{}", "Error: activate is not configured.".red().bold());
+            eprintln!();
+            eprintln!("Run 'activate --config' to set your projects directory.");
+            process::exit(1);
+        }
+    }
+
     // Trigger background demotion check (non-blocking)
     if let Ok(db_path) = get_database_path() {
         trigger_demotion_check(db_path);
     }
-
-    let cli = Cli::parse();
-
-    let _config = load_config().context("Failed to load configuration")?;
 
     let data_dir = config::paths::get_data_dir()?;
     fs::create_dir_all(&data_dir)
@@ -53,8 +76,6 @@ fn main() -> Result<()> {
         commands::deactivate::execute_deactivate(&db, name)
     } else if let Some(ref name) = cli.archive {
         commands::archive::execute_archive(&db, name)
-    } else if let Some(ref shell) = cli.init {
-        commands::init::execute_init(shell)
     } else if let Some(ref name) = cli.query {
         commands::query::execute_query(&db, std::slice::from_ref(name), cli.exclude.as_deref())
     } else if let Some(ref shell) = cli.completions {

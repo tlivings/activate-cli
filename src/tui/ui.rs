@@ -24,9 +24,11 @@ pub fn render(frame: &mut Frame, app: &App) {
     render_status(frame, app, chunks[1]);
     render_input(frame, app, chunks[2]);
 
-    // Render help overlay on top if active
+    // Render overlays on top if active
     if app.show_help {
         render_help_overlay(frame, area);
+    } else if app.show_settings {
+        render_settings_overlay(frame, area);
     }
 }
 
@@ -206,6 +208,75 @@ fn render_help_overlay(frame: &mut Frame, area: Rect) {
         .wrap(ratatui::widgets::Wrap { trim: false });
 
     frame.render_widget(help_paragraph, help_area);
+}
+
+fn render_settings_overlay(frame: &mut Frame, area: Rect) {
+    use crate::config::Config;
+
+    // Load current config
+    let config = Config::load().ok();
+
+    let settings_area = centered_rect(60, 50, area);
+    frame.render_widget(Clear, settings_area);
+
+    let mut lines = vec![
+        Line::from("Settings").style(Style::default().add_modifier(Modifier::BOLD)),
+        Line::from(""),
+    ];
+
+    if let Some(ref cfg) = config {
+        // Tracked directory
+        let tracked = cfg
+            .tracked_directory
+            .as_ref()
+            .map(|p| p.display().to_string())
+            .unwrap_or_else(|| "(not set)".to_string());
+        lines.push(Line::from(vec![
+            Span::styled("  Projects directory: ", Style::default().fg(Color::DarkGray)),
+            Span::styled(tracked, Style::default().fg(Color::Cyan)),
+        ]));
+
+        // Ignore patterns count
+        let pattern_count = cfg.ignore_patterns.len();
+        lines.push(Line::from(vec![
+            Span::styled("  Ignore patterns:    ", Style::default().fg(Color::DarkGray)),
+            Span::styled(format!("{} patterns", pattern_count), Style::default()),
+        ]));
+
+        // Config file path
+        if let Ok(config_path) = crate::config::paths::get_config_file() {
+            lines.push(Line::from(""));
+            lines.push(Line::from(vec![
+                Span::styled("  Config file: ", Style::default().fg(Color::DarkGray)),
+                Span::styled(
+                    config_path.display().to_string(),
+                    Style::default().fg(Color::DarkGray),
+                ),
+            ]));
+        }
+    } else {
+        lines.push(Line::from("  Failed to load configuration")
+            .style(Style::default().fg(Color::Red)));
+    }
+
+    lines.push(Line::from(""));
+    lines.push(Line::from(""));
+    lines.push(
+        Line::from("Press 'e' to edit in $EDITOR, 'c' to close")
+            .style(Style::default().fg(Color::DarkGray)),
+    );
+
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(Color::Magenta))
+        .title(" Settings ")
+        .title_style(Style::default().add_modifier(Modifier::BOLD));
+
+    let paragraph = Paragraph::new(lines)
+        .block(block)
+        .wrap(ratatui::widgets::Wrap { trim: false });
+
+    frame.render_widget(paragraph, settings_area);
 }
 
 fn centered_rect(percent_x: u16, percent_y: u16, area: Rect) -> Rect {
