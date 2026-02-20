@@ -97,41 +97,44 @@ Plans:
 
 ---
 
-### Phase 3: Git Integration
+### Phase 3: Git Integration + CLI Refactor
 
-**Goal:** Users can clone projects from GitHub and track repository status
+**Goal:** Users can clone projects from GitHub, track repository status, and use flag-based CLI
 
 **Dependencies:** Phase 2 (state management for marking cloned projects as active)
 
 **Status:** Planning Complete
 
-**Plans:** 3 plans
+**Plans:** 4 plans
 
 Plans:
-- [ ] 03-01-PLAN.md — Git module foundation (clone, status, origin detection)
-- [ ] 03-02-PLAN.md — Git integration in commands (URL cloning, warnings, list verbose)
-- [ ] 03-03-PLAN.md — TUI enhancements and README documentation
+- [ ] 03-01-PLAN.md — CLI refactor from subcommands to flags (Wave 1)
+- [ ] 03-02-PLAN.md — Git module foundation: clone, status, origin detection (Wave 1)
+- [ ] 03-03-PLAN.md — Git integration in commands: URL cloning, warnings, list verbose (Wave 2)
+- [ ] 03-04-PLAN.md — TUI enhancements and README documentation (Wave 3)
 
 **Requirements:**
+- CLI-01: CLI uses flags instead of subcommands (--list, --add, --remove, etc.)
+- CLI-02: Positional argument always means project name to navigate to
 - GIT-01: User can activate with GitHub URL to clone repo
 - GIT-02: Cloned repo is extracted to folder name and marked as active
 - GIT-03: Tool auto-detects git origin for all projects and stores in database
 - GIT-04: Tool checks for uncommitted changes before deactivating/archiving
-- GIT-05: Tool warns and prompts for confirmation if uncommitted changes exist
-- GIT-06: Activating missing project with git origin auto-reclones it
-- GIT-07: Projects without folders are marked as "missing" in database
-- GIT-08: Missing projects without git origin are auto-removed from database
-- GIT-09: User can force remove project from database even if missing
+- GIT-05: Tool warns (non-blocking) if uncommitted changes exist
+- GIT-06: Missing projects auto-removed from database (no reclone)
+- GIT-07: --verbose flag shows git status in list output
 - TUI-01: TUI deactivate action - 'd' key deactivates selected project
 - TUI-02: TUI archive action - 'a' key archives selected project
 - TUI-03: TUI help section - '?' key shows keybinding help overlay
-- DOC-01: README.md - Simple, clear project documentation
+- DOC-01: README.md - Simple, clear project documentation with flag-based syntax
 
 **Success Criteria:**
 1. User can run `activate https://github.com/user/repo` and have it cloned, added to database, and activated
-2. User sees warning when trying to archive project with uncommitted changes
-3. User can activate a deleted project and have it automatically recloned if git origin is known
+2. User sees warning when trying to archive project with uncommitted changes (proceeds anyway)
+3. User can run `activate --list --verbose` to see git status
 4. Projects show git origin URL in list output when available
+5. `activate myproject` works (positional arg = navigation, not subcommand)
+6. `activate --list` works (flag-based, was `activate list`)
 
 ---
 
@@ -141,7 +144,7 @@ Plans:
 |-------|--------|---------|-----------|----------|
 | Phase 1: Foundation & Core CRUD | Complete | 2026-02-19 | 2026-02-20 | 100% |
 | Phase 2: State Management & Navigation | Complete | 2026-02-20 | 2026-02-20 | 100% |
-| Phase 3: Git Integration | Planning Complete | - | - | 0% |
+| Phase 3: Git Integration + CLI Refactor | Planning Complete | - | - | 0% |
 
 **Overall:** 66% (2/3 phases complete)
 
@@ -161,6 +164,13 @@ Due to "quick" depth setting, phases are aggressively compressed:
 The critical path is Phase 1 -> Phase 2 -> Phase 3. Each phase depends on the previous:
 - Phase 2 needs the database from Phase 1 to track states
 - Phase 3 needs state management from Phase 2 to mark cloned projects as active
+
+### Phase 3 Wave Structure
+
+Phase 3 uses parallel execution where possible:
+- **Wave 1 (parallel):** CLI refactor (03-01) and Git module (03-02) run simultaneously
+- **Wave 2:** Command wiring (03-03) depends on both Wave 1 plans
+- **Wave 3:** TUI + README (03-04) depends on Wave 2
 
 ---
 *Roadmap created: 2026-02-19*
