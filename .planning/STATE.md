@@ -9,31 +9,32 @@
 
 **Core Value:** Quick access to any tracked project - type `activate <name>` and you're instantly in that directory, ready to work.
 
-**Current Focus:** Phase 2 complete - TUI interface added as default project selector
+**Current Focus:** Phase 3 in progress - CLI refactored, Git module foundation complete
 
 ## Current Position
 
 | Dimension | Value |
 |-----------|-------|
-| **Current Phase** | Phase 2: State Management & Navigation |
-| **Current Plan** | Plan 6 of 6 |
+| **Current Phase** | Phase 3: Git/GitHub Integration |
+| **Current Plan** | Plan 2 of 4 |
 | **Plan Status** | Complete |
-| **Implementation** | Phase 2 complete with TUI |
+| **Implementation** | CLI refactored + Git module |
 
 ### Progress Bar
 
 **Phase 1:** 100%
 **Phase 2:** 100%
-**Overall:** 66%
+**Phase 3:** 50%
+**Overall:** 83%
 
 ## Performance Metrics
 
 | Metric | Target | Actual | Status |
 |--------|--------|--------|--------|
-| **Phase Completion** | 3 phases | 2/3 | On Track |
-| **Requirement Coverage** | 36 requirements | 24/36 | On Track |
-| **Git Commits** | Progressive | 18+ | Active |
-| **Test Coverage** | >80% | ~70% | Good |
+| **Phase Completion** | 3 phases | 2.5/3 | On Track |
+| **Requirement Coverage** | 36 requirements | 28/36 | On Track |
+| **Git Commits** | Progressive | 22+ | Active |
+| **Test Coverage** | >80% | ~75% | Good |
 | Phase 01-foundation-core-crud P01 | 818 | 2 tasks | 10 files |
 | Phase 01-foundation-core-crud P04 | 698 | 2 tasks | 6 files |
 | Phase 02-state-management-navigation P01 | ~300s | 2 tasks | 2 files |
@@ -41,6 +42,7 @@
 | Phase 02-state-management-navigation P05 | 238s | 2 tasks | 10 files |
 | Phase 02-state-management-navigation P03 | 447s | 3 tasks | 11 files |
 | Phase 02-state-management-navigation P06 | 330s | 6 tasks | 11 files |
+| Phase 03-git-integration P02 | 492s | 4 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -66,12 +68,14 @@
 | atty for TTY detection | Interactive prompts in create-on-activate | 2026-02-20 |
 | ratatui over tui-rs | ratatui is the actively maintained fork | 2026-02-20 |
 | Pipe-friendly list default | TUI replaces table format for human viewing | 2026-02-20 |
+| git2 with vendored-libgit2/openssl | Avoid system dependency issues on macOS | 2026-02-20 |
+| Graceful git error handling | Unpushed count returns 0 on error, not failure | 2026-02-20 |
 
 ### Active TODOs
 
-- [ ] Phase 3: Git/GitHub integration
-- [ ] Clone support for GitHub URLs
-- [ ] Uncommitted changes warnings
+- [ ] Integrate git clone into activate command (Plan 03)
+- [ ] Add uncommitted changes warnings to deactivate/archive (Plan 04)
+- [ ] TUI enhancements (Plan 04)
 
 ### Completed Milestones
 
@@ -81,6 +85,7 @@
 - [x] Roadmap creation (2026-02-19)
 - [x] Phase 1: Foundation & Core CRUD (2026-02-19)
 - [x] Phase 2: State Management & Navigation (2026-02-20)
+- [x] Phase 3 Plan 2: Git module foundation (2026-02-20)
 
 ### Known Blockers
 
@@ -96,39 +101,37 @@ None currently identified.
 - serde/toml for configuration
 - ratatui 0.29 for TUI
 - crossterm 0.28 for terminal handling
+- git2 0.20 with vendored-libgit2 and vendored-openssl
 
 **Critical implementation notes:**
 - Must canonicalize paths before any database operations
 - Use shell-escape crate for proper command escaping
 - Configure SQLite with WAL mode for Windows compatibility
 - Background demotion via thread::spawn - fire-and-forget
+- Git status returns 0 for unpushed on error (graceful degradation)
 
 ## Session Continuity
 
 ### Last Session Summary
 
-Phase 2 Plan 6 executed. Added ratatui TUI as default interface. Running `activate` with no args opens interactive project selector with fuzzy filtering. Projects sorted by frecency. Vim keybindings (j/k) alongside arrows. List command simplified to pipe-friendly output.
+Phase 3 Plan 2 executed. Created git module with clone, status, and origin detection. Added git2 crate with vendored libgit2 and OpenSSL. Implemented extract_repo_name() for HTTPS/SSH URLs, clone_repository() with SSH agent auth, GitStatus for uncommitted changes tracking, and detect_origin() for remote URL detection. 20 unit tests added.
 
 ### Entry Points for Next Session
 
-1. Start Phase 3: Git/GitHub Integration
-2. Implement GitHub URL cloning
-3. Add uncommitted changes warnings on state change
+1. Execute Phase 3 Plan 3: Integrate clone into activate command
+2. Execute Phase 3 Plan 4: Add git warnings to deactivate/archive
+3. Consider TUI enhancements for git status display
 
 ### Context Preservation
 
-**Phase 2 Complete - What was built:**
-- Frecency scoring with visit count tracking
-- Fuzzy matching with SkimMatcherV2
-- Query command for shell integration
-- Shell wrapper functions (bash/zsh/fish)
-- Auto-demotion after 14 days inactive
-- Auto-discovery of new projects
-- Sync command for manual refresh
-- Ratatui TUI as default interface
-- Three-panel layout (list, status, input)
+**Phase 3 Plan 2 Complete - What was built:**
+- src/git/mod.rs - Module exports
+- src/git/clone.rs - URL parsing and repository cloning
+- src/git/status.rs - GitStatus with staged/unstaged/unpushed counts
+- src/git/origin.rs - Origin URL detection and is_git_repo helper
+- 20 unit tests for git module
 
 ---
 *State initialized: 2026-02-19*
 *Last updated: 2026-02-20*
-*Last session: Executed 02-06-PLAN.md*
+*Last session: Executed 03-02-PLAN.md*
