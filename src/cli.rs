@@ -11,11 +11,11 @@ pub struct Cli {
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
-    /// List all tracked projects
+    /// List all tracked projects (pipe-friendly)
     List {
-        /// Output format
-        #[arg(short, long, value_enum, default_value = "table")]
-        format: OutputFormat,
+        /// Output as JSON (full project details)
+        #[arg(long)]
+        json: bool,
 
         /// Filter projects by state (active, inactive, archived)
         #[arg(short, long)]
@@ -77,12 +77,3 @@ pub enum Commands {
     Sync,
 }
 
-#[derive(Debug, Clone, ValueEnum)]
-pub enum OutputFormat {
-    /// Display as a formatted table
-    Table,
-    /// Display as JSON
-    Json,
-    /// Display as tab-separated values
-    Tsv,
-}

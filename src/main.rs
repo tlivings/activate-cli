@@ -45,8 +45,8 @@ fn main() -> Result<()> {
     // Process commands
     let result = match cli.command {
         None => commands::interactive::execute_interactive(&db),
-        Some(Commands::List { format, state }) => {
-            commands::list::execute_list(&db, state.as_deref(), format)
+        Some(Commands::List { json, state }) => {
+            commands::list::execute_list(&db, state.as_deref(), json)
         }
         Some(Commands::Query { keywords, exclude }) => {
             commands::query::execute_query(&db, &keywords, exclude.as_deref())
