@@ -58,15 +58,19 @@ Warp has a built-in `activate` command. To avoid conflicts, use a custom functio
 __ACTIVATE_BIN="$HOME/.cargo/bin/activate"
 act() {
     if [[ $# -eq 0 ]]; then
-        local result
-        result="$("$__ACTIVATE_BIN")"
-        [[ $? -eq 0 && -n "$result" && -d "$result" ]] && cd "$result"
+        # TUI mode - use temp file so TUI has direct terminal access
+        local tmpfile=$(mktemp)
+        "$__ACTIVATE_BIN" > "$tmpfile" </dev/tty
+        local status=$?
+        local result=$(cat "$tmpfile")
+        rm -f "$tmpfile"
+        [[ $status -eq 0 && -n "$result" && -d "$result" ]] && cd "$result"
     elif [[ "$1" == -* ]]; then
         "$__ACTIVATE_BIN" "$@"
     else
         local result
         result="$("$__ACTIVATE_BIN" --query "$1" --exclude "$PWD" 2>/dev/null)"
-        if [[ $? -eq 0 && -n "$result" && -d "$result" ]]; then
+        if [[ -n "$result" && -d "$result" ]]; then
             cd "$result"
         else
             "$__ACTIVATE_BIN" "$@"
