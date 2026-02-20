@@ -49,7 +49,7 @@ pub fn open_database() -> Result<Connection> {
 }
 
 /// Get the path to the database file
-fn get_database_path() -> Result<PathBuf> {
+pub fn get_database_path() -> Result<PathBuf> {
     // Use platform-specific data directory via ProjectDirs
     use directories::ProjectDirs;
 

@@ -41,6 +41,11 @@ impl Default for Config {
 }
 
 impl Config {
+    /// Load configuration from disk
+    pub fn load() -> Result<Config> {
+        load_config()
+    }
+
     /// Save the configuration to disk
     pub fn save(&self) -> Result<()> {
         let config_path = paths::get_config_file()?;
