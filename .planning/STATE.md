@@ -39,6 +39,7 @@
 | Phase 02-state-management-navigation P01 | ~300s | 2 tasks | 2 files |
 | Phase 02-state-management-navigation P02 | 356s | 2 tasks | 12 files |
 | Phase 02-state-management-navigation P05 | 238s | 2 tasks | 10 files |
+| Phase 02-state-management-navigation P03 | 447s | 3 tasks | 11 files |
 
 ## Accumulated Context
 
@@ -61,6 +62,7 @@
 | Background demotion via thread::spawn | Fire-and-forget pattern, non-blocking | 2026-02-20 |
 | 14-day threshold for auto-demotion | As specified in requirements | 2026-02-20 |
 | Discovered projects as inactive | User must activate to mark active | 2026-02-20 |
+| atty for TTY detection | Interactive prompts in create-on-activate | 2026-02-20 |
 
 ### Active TODOs
 
@@ -100,7 +102,7 @@ None currently identified.
 
 ### Last Session Summary
 
-Phase 2 Plan 5 completed. Implemented auto-demotion of stale projects (>14 days) via background thread on every command. Added auto-discovery of new projects in tracked directory using walkdir. Created sync command that combines demotion check, discovery, and missing project detection.
+Phase 2 Plan 3 re-executed. Implemented state management commands (activate, deactivate, archive, status). Added database operations for state changes and visit tracking. Activate supports create-on-activate with TTY detection.
 
 ### Entry Points for Next Session
 
@@ -122,4 +124,4 @@ Phase 2 Plan 5 completed. Implemented auto-demotion of stale projects (>14 days)
 ---
 *State initialized: 2026-02-19*
 *Last updated: 2026-02-20*
-*Last session: Completed 02-05-PLAN.md*
+*Last session: Re-executed 02-03-PLAN.md*
