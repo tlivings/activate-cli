@@ -17,6 +17,8 @@ pub struct App {
     pub open_config_request: bool, // Request to open config in editor
     pub deactivate_request: Option<String>,
     pub archive_request: Option<String>,
+    pub command_mode: bool,
+    pub command_input: String,
     matcher: ProjectMatcher,
 }
 
@@ -43,6 +45,8 @@ impl App {
             open_config_request: false,
             deactivate_request: None,
             archive_request: None,
+            command_mode: false,
+            command_input: String::new(),
             matcher: ProjectMatcher::new(),
         }
     }
@@ -126,6 +130,59 @@ impl App {
     }
 
     pub fn handle_key(&mut self, code: KeyCode, modifiers: KeyModifiers) {
+        // Command mode handling
+        if self.command_mode {
+            match (code, modifiers) {
+                (KeyCode::Esc, _) | (KeyCode::Backspace, _) => {
+                    // Exit command mode without executing
+                    self.command_mode = false;
+                    self.command_input.clear();
+                }
+                (KeyCode::Char('c'), KeyModifiers::NONE) => {
+                    // Settings command
+                    self.show_settings = !self.show_settings;
+                    self.show_help = false;
+                    self.command_mode = false;
+                    self.command_input.clear();
+                }
+                (KeyCode::Char('a'), KeyModifiers::NONE) => {
+                    // Archive command
+                    if let Some(project) = self.selected_project() {
+                        self.archive_request = Some(project.name.clone());
+                    }
+                    self.command_mode = false;
+                    self.command_input.clear();
+                }
+                (KeyCode::Char('d'), KeyModifiers::NONE) => {
+                    // Deactivate command
+                    if let Some(project) = self.selected_project() {
+                        self.deactivate_request = Some(project.name.clone());
+                    }
+                    self.command_mode = false;
+                    self.command_input.clear();
+                }
+                (KeyCode::Char('i'), KeyModifiers::NONE) => {
+                    // Toggle ignore command
+                    self.request_toggle_ignore();
+                    self.command_mode = false;
+                    self.command_input.clear();
+                }
+                (KeyCode::Char('I'), KeyModifiers::SHIFT) => {
+                    // Toggle show/hide ignored
+                    self.toggle_show_ignored();
+                    self.command_mode = false;
+                    self.command_input.clear();
+                }
+                _ => {
+                    // Invalid command, just exit command mode
+                    self.command_mode = false;
+                    self.command_input.clear();
+                }
+            }
+            return;
+        }
+
+        // Normal mode handling
         match (code, modifiers) {
             (KeyCode::Esc, _) | (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
                 self.should_quit = true;
@@ -137,41 +194,22 @@ impl App {
             (KeyCode::Down, _)
             | (KeyCode::Char('j'), KeyModifiers::NONE)
             | (KeyCode::Char('n'), KeyModifiers::CONTROL) => self.move_down(),
-            // Toggle ignore on selected project (lowercase i)
-            (KeyCode::Char('i'), KeyModifiers::NONE) if self.input.is_empty() => {
-                self.request_toggle_ignore();
-            }
-            // Toggle show/hide ignored projects (uppercase I)
-            (KeyCode::Char('I'), KeyModifiers::SHIFT) => {
-                self.toggle_show_ignored();
-            }
             // Help toggle
             (KeyCode::Char('?'), _) => {
                 self.show_help = !self.show_help;
-                self.show_settings = false; // Close settings if open
+                self.show_settings = false;
             }
-            // Settings toggle (lowercase c, only when not typing)
-            (KeyCode::Char('c'), KeyModifiers::NONE) if self.input.is_empty() => {
-                self.show_settings = !self.show_settings;
-                self.show_help = false; // Close help if open
-            }
-            // Edit config (lowercase e, only in settings view)
+            // Edit config (only in settings view)
             (KeyCode::Char('e'), KeyModifiers::NONE) if self.show_settings => {
                 self.open_config_request = true;
-                self.should_quit = true; // Exit TUI to open editor
+                self.should_quit = true;
             }
-            // Deactivate selected project (lowercase d, only when not typing)
-            (KeyCode::Char('d'), KeyModifiers::NONE) if self.input.is_empty() => {
-                if let Some(project) = self.selected_project() {
-                    self.deactivate_request = Some(project.name.clone());
-                }
+            // Enter command mode
+            (KeyCode::Char('/'), KeyModifiers::NONE) => {
+                self.command_mode = true;
+                self.command_input.clear();
             }
-            // Archive selected project (lowercase a, only when not typing)
-            (KeyCode::Char('a'), KeyModifiers::NONE) if self.input.is_empty() => {
-                if let Some(project) = self.selected_project() {
-                    self.archive_request = Some(project.name.clone());
-                }
-            }
+            // Filter input
             (KeyCode::Backspace, _) => {
                 self.input.pop();
                 self.filter();

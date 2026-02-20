@@ -134,8 +134,10 @@ fn render_input(frame: &mut Frame, app: &App, area: Rect) {
     } else {
         ""
     };
-    let help_hint = if app.input.is_empty() {
-        "  d:deactivate a:archive i:ignore c:config ?:help"
+    let help_hint = if app.command_mode {
+        "  Command: c:config a:archive d:deactivate i:ignore I:show-ignored ESC:cancel"
+    } else if app.input.is_empty() {
+        "  /:command ?:help"
     } else {
         ""
     };
@@ -144,11 +146,17 @@ fn render_input(frame: &mut Frame, app: &App, area: Rect) {
     let separator_len = area.width.saturating_sub(info_str.len() as u16 + 4);
     let separator = format!("  {} {}", info_str, "─".repeat(separator_len as usize));
 
+    let (prompt, input_text) = if app.command_mode {
+        ("/", &app.command_input)
+    } else {
+        (">", &app.input)
+    };
+
     let text = vec![
         Line::from(separator).style(Style::default().fg(Color::DarkGray)),
         Line::from(vec![
-            Span::styled("  > ", Style::default().fg(Color::Cyan)),
-            Span::raw(&app.input),
+            Span::styled(format!("  {} ", prompt), Style::default().fg(Color::Cyan)),
+            Span::raw(input_text),
             Span::styled("_", Style::default().add_modifier(Modifier::SLOW_BLINK)),
         ]),
     ];

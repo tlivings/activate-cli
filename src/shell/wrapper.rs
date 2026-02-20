@@ -57,8 +57,25 @@ __ACTIVATE_BIN="{exe}"
 
 {func_name}() {{
     local result
-    result="$("$__ACTIVATE_BIN" "$@")"
-    [[ -n "$result" && -d "$result" ]] && builtin cd -- "$result"
+    local exit_code
+
+    # Capture stdout, preserve stderr for error messages
+    result="$("$__ACTIVATE_BIN" "$@" 2>&1)"
+    exit_code=$?
+
+    # If command failed, show error and return
+    if [[ $exit_code -ne 0 ]]; then
+        echo "$result" >&2
+        return $exit_code
+    fi
+
+    # If result is a directory, cd to it
+    if [[ -n "$result" && -d "$result" ]]; then
+        builtin cd -- "$result"
+    elif [[ -n "$result" ]]; then
+        # Non-directory output (e.g., list command), show it
+        echo "$result"
+    fi
 }}
 
 # Tab completion
@@ -94,8 +111,25 @@ precmd_functions+=(__activate_precmd)
 
 {func_name}() {{
     local result
-    result="$("$__ACTIVATE_BIN" "$@")"
-    [[ -n "$result" && -d "$result" ]] && __activate_target="$result"
+    local exit_code
+
+    # Capture stdout, preserve stderr for error messages
+    result="$("$__ACTIVATE_BIN" "$@" 2>&1)"
+    exit_code=$?
+
+    # If command failed, show error and return
+    if [[ $exit_code -ne 0 ]]; then
+        echo "$result" >&2
+        return $exit_code
+    fi
+
+    # If result is a directory, cd to it via precmd hook
+    if [[ -n "$result" && -d "$result" ]]; then
+        __activate_target="$result"
+    elif [[ -n "$result" ]]; then
+        # Non-directory output (e.g., list command), show it
+        echo "$result"
+    fi
 }}
 
 # Debug version: skips DB updates to isolate latency
@@ -125,9 +159,21 @@ fn generate_fish(exe: &str, func_name: &str) -> String {
 set -g __ACTIVATE_BIN "{exe}"
 
 function {func_name}
-    set -l result ($__ACTIVATE_BIN $argv)
+    set -l result ($__ACTIVATE_BIN $argv 2>&1)
+    set -l exit_code $status
+
+    # If command failed, show error and return
+    if test $exit_code -ne 0
+        echo $result >&2
+        return $exit_code
+    end
+
+    # If result is a directory, cd to it
     if test -n "$result"; and test -d "$result"
         cd $result
+    else if test -n "$result"
+        # Non-directory output (e.g., list command), show it
+        echo $result
     end
 end
 
