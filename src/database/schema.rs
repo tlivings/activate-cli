@@ -34,6 +34,14 @@ pub const MIGRATIONS: &[&str] = &[
         UPDATE projects SET updated_at = unixepoch() WHERE id = NEW.id;
     END;
     "#,
+    // Version 2: Add visit_count for frecency tracking
+    r#"
+    -- Add visit_count column for frecency scoring
+    ALTER TABLE projects ADD COLUMN visit_count INTEGER NOT NULL DEFAULT 0;
+
+    -- Create compound index for optimized frecency queries
+    CREATE INDEX idx_projects_frecency ON projects(state, last_touched DESC, visit_count DESC);
+    "#,
 ];
 
 /// Run all pending database migrations
@@ -113,7 +121,7 @@ mod tests {
 
         // Verify schema version was set
         let version = get_schema_version(&conn).unwrap();
-        assert_eq!(version, 1, "Schema version should be 1 after migration");
+        assert_eq!(version, 2, "Schema version should be 2 after migration");
 
         // Verify tables were created
         let projects_exists: i32 = conn
@@ -146,9 +154,9 @@ mod tests {
 
         assert!(result.is_ok(), "Running migrations twice should not fail");
 
-        // Version should still be 1
+        // Version should still be 2
         let version = get_schema_version(&conn).unwrap();
-        assert_eq!(version, 1, "Schema version should remain 1");
+        assert_eq!(version, 2, "Schema version should remain 2");
     }
 
     #[test]
@@ -190,5 +198,57 @@ mod tests {
             [],
         );
         assert!(result.is_err(), "Should reject duplicate name with different case");
+    }
+
+    #[test]
+    fn test_visit_count_column_exists() {
+        let conn = Connection::open_in_memory().unwrap();
+        migrate(&conn).unwrap();
+
+        // Insert a project and verify visit_count defaults to 0
+        conn.execute(
+            "INSERT INTO projects (name, path, state, last_touched) VALUES ('test', '/test', 'active', 1234567890)",
+            [],
+        ).unwrap();
+
+        let visit_count: i32 = conn
+            .query_row(
+                "SELECT visit_count FROM projects WHERE name = 'test'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(visit_count, 0, "visit_count should default to 0");
+
+        // Verify we can update visit_count
+        conn.execute(
+            "UPDATE projects SET visit_count = 5 WHERE name = 'test'",
+            [],
+        ).unwrap();
+
+        let updated_count: i32 = conn
+            .query_row(
+                "SELECT visit_count FROM projects WHERE name = 'test'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(updated_count, 5, "visit_count should be updatable");
+    }
+
+    #[test]
+    fn test_frecency_index_exists() {
+        let conn = Connection::open_in_memory().unwrap();
+        migrate(&conn).unwrap();
+
+        // Verify the frecency index exists
+        let index_exists: i32 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name='idx_projects_frecency'",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(index_exists, 1, "idx_projects_frecency index should exist");
     }
 }
