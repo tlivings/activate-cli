@@ -49,6 +49,22 @@ pub enum Commands {
         #[arg(long)]
         exclude: Option<String>,
     },
+
+    /// Initialize shell integration
+    Init {
+        /// Shell type (bash, zsh, fish)
+        shell: String,
+    },
+
+    /// Generate completions for shell (internal use)
+    Completions {
+        /// Shell type
+        shell: String,
+
+        /// Current word being completed
+        #[arg(long)]
+        current: Option<String>,
+    },
 }
 
 #[derive(Debug, Clone, ValueEnum)]

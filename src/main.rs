@@ -4,6 +4,7 @@ use colored::Colorize;
 use std::fs;
 use std::process;
 
+mod automation;
 mod cli;
 mod commands;
 mod config;
@@ -11,13 +12,21 @@ mod database;
 mod error;
 mod navigation;
 mod output;
+mod shell;
 mod utils;
 
+use automation::trigger_demotion_check;
 use cli::{Cli, Commands};
 use config::load_config;
-use database::Database;
+use database::{get_database_path, Database};
 
 fn main() -> Result<()> {
+    // Trigger background demotion check (non-blocking)
+    // Projects inactive for >14 days get demoted automatically
+    if let Ok(db_path) = get_database_path() {
+        trigger_demotion_check(db_path);
+    }
+
     // Parse command line arguments
     let cli = Cli::parse();
 
@@ -45,6 +54,10 @@ fn main() -> Result<()> {
         }
         Commands::Query { keywords, exclude } => {
             commands::query::execute_query(&db, &keywords, exclude.as_deref())
+        }
+        Commands::Init { shell } => commands::init::execute_init(&shell),
+        Commands::Completions { shell, current } => {
+            commands::completions::execute_completions(&db, &shell, current.as_deref())
         }
     };
 
