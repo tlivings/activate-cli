@@ -32,10 +32,7 @@ impl ProjectMatcher {
             .iter()
             .filter_map(|p| {
                 self.matcher.fuzzy_match(&p.name, query).map(|fuzzy_score| {
-                    let frecency = calculate_frecency(
-                        p.visit_count,
-                        p.last_touched,
-                    );
+                    let frecency = calculate_frecency(p.visit_count, p.last_touched);
                     MatchResult {
                         project: p.clone(),
                         fuzzy_score,
@@ -72,9 +69,9 @@ impl Default for ProjectMatcher {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::database::models::ProjectState;
     use chrono::Utc;
     use std::path::PathBuf;
-    use crate::database::models::ProjectState;
 
     fn create_test_project(name: &str, visit_count: u32) -> Project {
         Project {
@@ -87,6 +84,7 @@ mod tests {
             git_origin: None,
             created_at: Utc::now(),
             updated_at: Utc::now(),
+            ignored: false,
         }
     }
 
@@ -118,9 +116,7 @@ mod tests {
     #[test]
     fn test_no_matches_returns_empty() {
         let matcher = ProjectMatcher::new();
-        let projects = vec![
-            create_test_project("my-project", 5),
-        ];
+        let projects = vec![create_test_project("my-project", 5)];
 
         let results = matcher.match_projects("xyz", &projects);
         assert!(results.is_empty());
@@ -143,9 +139,7 @@ mod tests {
     #[test]
     fn test_find_exact_case_insensitive() {
         let matcher = ProjectMatcher::new();
-        let projects = vec![
-            create_test_project("MyProject", 5),
-        ];
+        let projects = vec![create_test_project("MyProject", 5)];
 
         let result = matcher.find_exact("myproject", &projects);
         assert!(result.is_some());
@@ -155,9 +149,7 @@ mod tests {
     #[test]
     fn test_find_exact_not_found() {
         let matcher = ProjectMatcher::new();
-        let projects = vec![
-            create_test_project("my-project", 5),
-        ];
+        let projects = vec![create_test_project("my-project", 5)];
 
         let result = matcher.find_exact("other-project", &projects);
         assert!(result.is_none());

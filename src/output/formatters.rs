@@ -78,8 +78,7 @@ pub fn format_tsv(projects: Vec<Project>) -> String {
 
 /// Convert Unix timestamp to human-readable relative time
 pub fn format_timestamp(timestamp: i64) -> String {
-    let dt = DateTime::<Utc>::from_timestamp(timestamp, 0)
-        .unwrap_or_else(|| Utc::now());
+    let dt = DateTime::<Utc>::from_timestamp(timestamp, 0).unwrap_or_else(|| Utc::now());
 
     let now = Utc::now();
     let duration = now.signed_duration_since(dt);
@@ -148,6 +147,7 @@ mod tests {
             created_at: Utc::now(),
             updated_at: Utc::now(),
             visit_count: 0,
+            ignored: false,
         }
     }
 
@@ -188,7 +188,9 @@ mod tests {
 
         // Should be valid JSON containing the project name
         assert!(output.contains("\"name\": \"myapp\"") || output.contains("\"name\":\"myapp\""));
-        assert!(output.contains("\"state\": \"active\"") || output.contains("\"state\":\"active\""));
+        assert!(
+            output.contains("\"state\": \"active\"") || output.contains("\"state\":\"active\"")
+        );
 
         // Verify it's valid JSON
         let parsed: serde_json::Value = serde_json::from_str(&output).unwrap();
