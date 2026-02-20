@@ -43,20 +43,14 @@ fn main() -> Result<()> {
 
     // Process commands
     let result = match cli.command {
-        Commands::Add { path, name } => {
-            commands::add::execute_add(&db, &path, name)
-        }
-        Commands::Remove { identifier } => {
-            commands::remove::execute_remove(&db, &identifier)
-        }
         Commands::List { format, state } => {
             commands::list::execute_list(&db, state.as_deref(), format)
         }
         Commands::Query { keywords, exclude } => {
             commands::query::execute_query(&db, &keywords, exclude.as_deref())
         }
-        Commands::Activate { name, create } => {
-            commands::activate::execute_activate(&db, &name, create)
+        Commands::Activate { name } => {
+            commands::activate::execute_activate(&db, &name)
         }
         Commands::Deactivate { name } => {
             commands::deactivate::execute_deactivate(&db, &name)

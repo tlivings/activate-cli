@@ -6,7 +6,7 @@ use colored::Colorize;
 use crate::automation::demotion::perform_demotion_check;
 use crate::automation::discovery::{add_discovered_projects, discover_new_projects};
 use crate::config::Config;
-use crate::database::operations::list_projects;
+use crate::database::operations::{list_projects, remove_project};
 use crate::database::Database;
 
 pub fn execute_sync(db: &Database) -> Result<()> {
@@ -38,19 +38,22 @@ pub fn execute_sync(db: &Database) -> Result<()> {
         );
     }
 
-    // 3. Check for missing projects
+    // 3. Remove missing projects (directories that no longer exist)
     let projects = list_projects(&db.conn, None)?;
     let missing: Vec<_> = projects.iter().filter(|p| !p.path.exists()).collect();
 
     if !missing.is_empty() {
-        println!(
-            "  {} {} project(s) have missing directories:",
-            "!".red(),
-            missing.len()
-        );
+        let mut removed = 0;
         for p in &missing {
-            println!("    - {} ({})", p.name, p.path.display());
+            if remove_project(&db.conn, &p.name)? {
+                removed += 1;
+            }
         }
+        println!(
+            "  {} {} project(s) removed (directories no longer exist)",
+            "-".red(),
+            removed
+        );
     }
 
     println!("{}", "Sync complete.".green());

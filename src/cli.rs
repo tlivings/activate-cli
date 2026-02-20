@@ -1,5 +1,4 @@
 use clap::{Parser, Subcommand, ValueEnum};
-use std::path::PathBuf;
 
 #[derive(Parser, Debug)]
 #[command(name = "activate")]
@@ -12,22 +11,6 @@ pub struct Cli {
 
 #[derive(Subcommand, Debug)]
 pub enum Commands {
-    /// Add a project to the database
-    Add {
-        /// Path to the project directory
-        path: PathBuf,
-
-        /// Optional name for the project (defaults to directory name)
-        #[arg(short, long)]
-        name: Option<String>,
-    },
-
-    /// Remove a project from the database
-    Remove {
-        /// Name or path of the project to remove
-        identifier: String,
-    },
-
     /// List all tracked projects
     List {
         /// Output format
@@ -50,14 +33,10 @@ pub enum Commands {
         exclude: Option<String>,
     },
 
-    /// Activate a project (mark active, cd to it)
+    /// Activate a project (find or create, mark active, cd to it)
     Activate {
         /// Project name to activate
         name: String,
-
-        /// Create the project if it doesn't exist
-        #[arg(long)]
-        create: bool,
     },
 
     /// Deactivate a project (mark as inactive)

@@ -1,5 +1,4 @@
-use anyhow::{bail, Context, Result};
-use std::io::{self, Write};
+use anyhow::{Context, Result};
 
 use crate::config::Config;
 use crate::database::operations::{
@@ -11,12 +10,11 @@ use crate::navigation::ProjectMatcher;
 
 /// Execute the activate command - find or create project, mark active, output path
 ///
-/// This is the primary navigation command. It:
+/// This is the primary interface. It:
 /// 1. Searches for project by name (exact then fuzzy match)
 /// 2. If found: marks active, increments visit, outputs path
-/// 3. If not found AND interactive (TTY): prompts to create
-/// 4. If --create flag: creates without prompting
-pub fn execute_activate(db: &Database, name: &str, create_flag: bool) -> Result<()> {
+/// 3. If not found: creates in tracked_directory and activates
+pub fn execute_activate(db: &Database, name: &str) -> Result<()> {
     let projects = list_projects(&db.conn, None)?;
     let matcher = ProjectMatcher::new();
 
@@ -35,8 +33,8 @@ pub fn execute_activate(db: &Database, name: &str, create_flag: bool) -> Result<
         return Ok(());
     }
 
-    // No match - offer to create
-    create_new_project(db, name, create_flag)
+    // No match - create new project
+    create_new_project(db, name)
 }
 
 /// Activate an existing project: update state and increment visit
@@ -46,25 +44,8 @@ fn activate_existing(db: &Database, name: &str) -> Result<()> {
     Ok(())
 }
 
-/// Create a new project when no match found
-fn create_new_project(db: &Database, name: &str, force_create: bool) -> Result<()> {
-    if !force_create {
-        // Check if interactive terminal
-        if !atty::is(atty::Stream::Stdin) {
-            bail!("Project '{}' not found. Use --create to create it.", name);
-        }
-
-        eprint!("Project '{}' not found. Create it? [y/N]: ", name);
-        io::stderr().flush()?;
-
-        let mut response = String::new();
-        io::stdin().read_line(&mut response)?;
-
-        if !response.trim().eq_ignore_ascii_case("y") {
-            bail!("Project creation cancelled");
-        }
-    }
-
+/// Create a new project in tracked_directory
+fn create_new_project(db: &Database, name: &str) -> Result<()> {
     // Load config to get tracked directory
     let config = Config::load()?;
     let new_path = config.tracked_directory.join(name);
