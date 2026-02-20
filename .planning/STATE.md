@@ -9,23 +9,23 @@
 
 **Core Value:** Quick access to any tracked project - type `activate <name>` and you're instantly in that directory, ready to work.
 
-**Current Focus:** Phase 3 in progress - CLI refactored, Git module foundation complete
+**Current Focus:** Phase 3 in progress - Git command integration complete
 
 ## Current Position
 
 | Dimension | Value |
 |-----------|-------|
 | **Current Phase** | Phase 3: Git/GitHub Integration |
-| **Current Plan** | Plan 2 of 4 |
+| **Current Plan** | Plan 3 of 4 |
 | **Plan Status** | Complete |
-| **Implementation** | CLI refactored + Git module |
+| **Implementation** | CLI + Git module + Command integration |
 
 ### Progress Bar
 
 **Phase 1:** 100%
 **Phase 2:** 100%
-**Phase 3:** 50%
-**Overall:** 83%
+**Phase 3:** 75%
+**Overall:** 92%
 
 ## Performance Metrics
 
@@ -44,6 +44,7 @@
 | Phase 02-state-management-navigation P06 | 330s | 6 tasks | 11 files |
 | Phase 03-git-integration P01 | 496s | 3 tasks | 4 files |
 | Phase 03-git-integration P02 | 492s | 4 tasks | 8 files |
+| Phase 03-git-integration P03 | 399s | 4 tasks | 8 files |
 
 ## Accumulated Context
 
@@ -72,12 +73,14 @@
 | Flags over subcommands | Positional arg always means project name, management ops are flags | 2026-02-20 |
 | git2 with vendored-libgit2/openssl | Avoid system dependency issues on macOS | 2026-02-20 |
 | Graceful git error handling | Unpushed count returns 0 on error, not failure | 2026-02-20 |
+| Origin stored as URL string | Full URL display, no parsing - "local" for non-git | 2026-02-20 |
+| Non-blocking git warnings | Show warning but proceed with deactivate/archive | 2026-02-20 |
+| Verbose list with tabled | Table output for origin and git status columns | 2026-02-20 |
 
 ### Active TODOs
 
-- [ ] Integrate git clone into activate command (Plan 03)
-- [ ] Add uncommitted changes warnings to deactivate/archive (Plan 04)
 - [ ] TUI enhancements (Plan 04)
+- [ ] README documentation (Plan 04)
 
 ### Completed Milestones
 
@@ -89,6 +92,7 @@
 - [x] Phase 2: State Management & Navigation (2026-02-20)
 - [x] Phase 3 Plan 1: CLI refactor to flags (2026-02-20)
 - [x] Phase 3 Plan 2: Git module foundation (2026-02-20)
+- [x] Phase 3 Plan 3: Git command integration (2026-02-20)
 
 ### Known Blockers
 
@@ -117,23 +121,26 @@ None currently identified.
 
 ### Last Session Summary
 
-Phase 3 Plan 1 executed. Refactored CLI from subcommands to flags. Positional argument now always means project name. All management operations accessible via flags (-l list, -a add, -r remove, etc). Shell wrappers updated for new syntax.
+Phase 3 Plan 3 executed. Wired git module into CLI commands. activate now clones from URLs, deactivate/archive show uncommitted warnings, sync/add/activate detect origins, list --verbose shows origin and git status columns.
 
 ### Entry Points for Next Session
 
-1. Execute Phase 3 Plan 3: Integrate clone into activate command
-2. Execute Phase 3 Plan 4: Add git warnings to deactivate/archive
-3. Consider TUI enhancements for git status display
+1. Execute Phase 3 Plan 4: TUI enhancements and documentation
+2. Complete Phase 3 and milestone
 
 ### Context Preservation
 
-**Phase 3 Plan 1 Complete - What was built:**
-- src/cli.rs - Flag-based Cli struct (no more Commands enum)
-- src/main.rs - Dispatcher with flag checks before positional
-- src/commands/mod.rs - Added add/remove module exports
-- src/shell/wrapper.rs - Updated bash/zsh/fish for --query syntax
+**Phase 3 Plan 3 Complete - What was built:**
+- src/commands/activate.rs - URL cloning and origin refresh
+- src/commands/deactivate.rs - Git warning before state change
+- src/commands/archive.rs - Git warning before state change
+- src/commands/sync.rs - Origin detection loop
+- src/commands/add.rs - Origin detection on new project
+- src/commands/list.rs - Verbose mode with tabled output
+- src/database/operations.rs - update_git_origin() function
+- src/main.rs - git module declaration
 
 ---
 *State initialized: 2026-02-19*
 *Last updated: 2026-02-20*
-*Last session: Executed 03-01-PLAN.md*
+*Last session: Executed 03-03-PLAN.md*
