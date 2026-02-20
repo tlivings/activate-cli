@@ -7,4 +7,5 @@ pub mod error;
 pub mod navigation;
 pub mod output;
 pub mod shell;
+pub mod tui;
 pub mod utils;
