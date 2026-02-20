@@ -17,13 +17,15 @@ This roadmap delivers the `activate` CLI tool in 3 focused phases. Phase 1 estab
 
 **Dependencies:** None
 
+**Status:** Complete
+
 **Plans:** 4 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — Set up Rust project structure and configuration system
-- [ ] 01-02-PLAN.md — Implement SQLite database layer with schema and migrations
-- [ ] 01-03-PLAN.md — Implement add and remove commands
-- [ ] 01-04-PLAN.md — Implement list command with multiple output formats
+- [x] 01-01-PLAN.md — Set up Rust project structure and configuration system
+- [x] 01-02-PLAN.md — Implement SQLite database layer with schema and migrations
+- [x] 01-03-PLAN.md — Implement add and remove commands
+- [x] 01-04-PLAN.md — Implement list command with multiple output formats
 
 **Requirements:**
 - CFG-01: Config file stored in ~/.config/activate/ directory
@@ -50,12 +52,24 @@ Plans:
 
 **Dependencies:** Phase 1 (database and config foundation)
 
+**Status:** Planning Complete
+
+**Plans:** 5 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — Database migration for visit_count and frecency calculation module
+- [ ] 02-02-PLAN.md — Fuzzy matching module and query command
+- [ ] 02-03-PLAN.md — State management commands (activate/deactivate/archive/status)
+- [ ] 02-04-PLAN.md — Shell integration (init, wrapper generation, completions)
+- [ ] 02-05-PLAN.md — Automation (auto-demotion, sync, discovery)
+
 **Requirements:**
 - NAV-01: User can navigate to project by typing project name
 - NAV-02: User can use fuzzy/partial matching to find projects
 - NAV-03: Projects are sorted by frecency (frequency + recency of use)
 - NAV-04: Shell function changes directory when activating project
 - NAV-05: Tab completion works for project names in shell
+- NAV-06: Activating non-existent project offers to create it (user requirement)
 - PROJ-04: User can filter projects by state (--active, --inactive, --archived)
 - PROJ-05: User can view detailed status/info for a project
 - PROJ-06: User can activate a project (marks as active, updates last touched)
@@ -111,11 +125,11 @@ Plans:
 
 | Phase | Status | Started | Completed | Progress |
 |-------|--------|---------|-----------|----------|
-| Phase 1: Foundation & Core CRUD | Not Started | - | - | ⬜⬜⬜⬜⬜ 0% |
-| Phase 2: State Management & Navigation | Not Started | - | - | ⬜⬜⬜⬜⬜ 0% |
-| Phase 3: Git Integration | Not Started | - | - | ⬜⬜⬜⬜⬜ 0% |
+| Phase 1: Foundation & Core CRUD | Complete | 2026-02-19 | 2026-02-20 | 100% |
+| Phase 2: State Management & Navigation | Planning Complete | - | - | 0% |
+| Phase 3: Git Integration | Not Started | - | - | 0% |
 
-**Overall:** ⬜⬜⬜⬜⬜⬜⬜⬜⬜⬜ 0%
+**Overall:** 33% (1/3 phases complete)
 
 ---
 
@@ -130,7 +144,7 @@ Due to "quick" depth setting, phases are aggressively compressed:
 
 ### Critical Path
 
-The critical path is Phase 1 → Phase 2 → Phase 3. Each phase depends on the previous:
+The critical path is Phase 1 -> Phase 2 -> Phase 3. Each phase depends on the previous:
 - Phase 2 needs the database from Phase 1 to track states
 - Phase 3 needs state management from Phase 2 to mark cloned projects as active
 
