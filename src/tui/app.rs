@@ -130,30 +130,34 @@ impl App {
     }
 
     pub fn handle_key(&mut self, code: KeyCode, modifiers: KeyModifiers) {
+        // Ctrl+C always quits immediately (emergency exit)
+        if matches!((code, modifiers), (KeyCode::Char('c'), KeyModifiers::CONTROL)) {
+            self.should_quit = true;
+            return;
+        }
+
         // Overlay handling - when help or settings is shown, block most keys
         if self.show_help || self.show_settings {
-            match (code, modifiers) {
-                // ESC or Ctrl+C: close overlay first, then quit if both closed
-                (KeyCode::Esc, _) | (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
+            match code {
+                // ESC: dismiss topmost overlay (like popping a view stack)
+                KeyCode::Esc => {
                     if self.show_help {
                         self.show_help = false;
                     } else if self.show_settings {
                         self.show_settings = false;
-                    } else {
-                        self.should_quit = true;
                     }
                 }
                 // ? always toggles help
-                (KeyCode::Char('?'), _) => {
+                KeyCode::Char('?') => {
                     self.show_help = !self.show_help;
                     self.show_settings = false;
                 }
-                // 'c' in settings toggles settings
-                (KeyCode::Char('c'), KeyModifiers::NONE) if self.show_settings => {
+                // 'c' in settings closes settings
+                KeyCode::Char('c') if self.show_settings => {
                     self.show_settings = false;
                 }
                 // Edit config (only in settings view)
-                (KeyCode::Char('e'), KeyModifiers::NONE) if self.show_settings => {
+                KeyCode::Char('e') if self.show_settings => {
                     self.open_config_request = true;
                     self.should_quit = true;
                 }
@@ -217,7 +221,8 @@ impl App {
 
         // Normal mode handling
         match (code, modifiers) {
-            (KeyCode::Esc, _) | (KeyCode::Char('c'), KeyModifiers::CONTROL) => {
+            // ESC in normal mode (no overlays) quits
+            (KeyCode::Esc, _) => {
                 self.should_quit = true;
             }
             (KeyCode::Enter, _) => self.select(),
