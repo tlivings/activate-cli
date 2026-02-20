@@ -32,9 +32,9 @@ Stop navigating file trees. Start working.
 
 ### From source
 
+Clone this repo, then:
+
 ```bash
-git clone https://github.com/YOUR_USERNAME/activate
-cd activate
 cargo install --path .
 ```
 
