@@ -38,19 +38,43 @@ pub fn execute_sync(db: &Database) -> Result<()> {
         );
     }
 
-    // 3. Remove missing projects (directories that no longer exist)
+    // 3. Remove projects that are missing or not direct children of tracked_directory
     let projects = list_projects(&db.conn, None)?;
-    let missing: Vec<_> = projects.iter().filter(|p| !p.path.exists()).collect();
+    let tracked_canonical = config.tracked_directory.canonicalize().ok();
 
-    if !missing.is_empty() {
+    let invalid: Vec<_> = projects.iter().filter(|p| {
+        // Remove if directory doesn't exist
+        if !p.path.exists() {
+            return true;
+        }
+        // Remove if not a DIRECT child of tracked_directory (no recursive tracking)
+        if let Some(ref tracked) = tracked_canonical {
+            if let Ok(project_canonical) = p.path.canonicalize() {
+                // Parent must be exactly tracked_directory
+                if let Some(parent) = project_canonical.parent() {
+                    return parent != tracked.as_path();
+                }
+                return true; // No parent = invalid
+            }
+        }
+        false
+    }).collect();
+
+    if !invalid.is_empty() {
         let mut removed = 0;
-        for p in &missing {
+        for p in &invalid {
+            let reason = if !p.path.exists() {
+                "missing"
+            } else {
+                "not direct child of tracked directory"
+            };
             if remove_project(&db.conn, &p.name)? {
+                println!("  {} {} ({})", "-".red(), p.name, reason);
                 removed += 1;
             }
         }
         println!(
-            "  {} {} project(s) removed (directories no longer exist)",
+            "  {} {} project(s) removed total",
             "-".red(),
             removed
         );
