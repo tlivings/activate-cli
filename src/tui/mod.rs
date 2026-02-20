@@ -1,4 +1,5 @@
 pub mod app;
+pub mod help;
 pub mod ui;
 
-pub use app::{App, run_app};
+pub use app::run_app;

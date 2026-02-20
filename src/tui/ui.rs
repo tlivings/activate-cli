@@ -1,12 +1,13 @@
+use crate::database::models::ProjectState;
+use crate::tui::app::App;
+use crate::tui::help;
 use ratatui::{
     layout::{Constraint, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
-    widgets::{List, ListItem, Paragraph},
+    widgets::{Block, Borders, Clear, List, ListItem, Paragraph},
     Frame,
 };
-use crate::database::models::ProjectState;
-use crate::tui::app::App;
 
 pub fn render(frame: &mut Frame, app: &App) {
     let area = frame.area();
@@ -22,6 +23,11 @@ pub fn render(frame: &mut Frame, app: &App) {
     render_list(frame, app, chunks[0]);
     render_status(frame, app, chunks[1]);
     render_input(frame, app, chunks[2]);
+
+    // Render help overlay on top if active
+    if app.show_help {
+        render_help_overlay(frame, area);
+    }
 }
 
 fn render_list(frame: &mut Frame, app: &App, area: Rect) {
@@ -50,7 +56,9 @@ fn render_list(frame: &mut Frame, app: &App, area: Rect) {
             let name_len = project.name.len() as u16;
             let prefix_len = 2u16; // "▸ " or "  "
             let indicator_len = 2u16; // "● "
-            let available = area.width.saturating_sub(prefix_len + name_len + indicator_len);
+            let available = area
+                .width
+                .saturating_sub(prefix_len + name_len + indicator_len);
             let padding = " ".repeat(available as usize);
 
             // Dim the name if ignored
@@ -89,7 +97,10 @@ fn render_status(frame: &mut Frame, app: &App, area: Rect) {
 
         // Build meta line with optional git origin
         let mut meta_parts = vec![
-            format!("Last touched {}", format_relative_time(project.last_touched)),
+            format!(
+                "Last touched {}",
+                format_relative_time(project.last_touched)
+            ),
             format!("{} visits", project.visit_count),
         ];
         if let Some(ref origin) = project.git_origin {
@@ -104,8 +115,7 @@ fn render_status(frame: &mut Frame, app: &App, area: Rect) {
         let meta_line = meta_parts.join(" · ");
 
         let text = vec![
-            Line::from("─".repeat(area.width as usize))
-                .style(Style::default().fg(Color::DarkGray)),
+            Line::from("─".repeat(area.width as usize)).style(Style::default().fg(Color::DarkGray)),
             Line::from(path_line).style(Style::default().fg(Color::Cyan)),
             Line::from(meta_line).style(Style::default().fg(Color::DarkGray)),
         ];
@@ -117,16 +127,20 @@ fn render_status(frame: &mut Frame, app: &App, area: Rect) {
 
 fn render_input(frame: &mut Frame, app: &App, area: Rect) {
     let match_info = format!("{}/{}", app.filtered.len(), app.projects.len());
-    let ignored_info = if app.show_ignored { " [showing ignored]" } else { "" };
-    let help_hint = if app.input.is_empty() { "  i:ignore I:toggle-hidden" } else { "" };
+    let ignored_info = if app.show_ignored {
+        " [showing ignored]"
+    } else {
+        ""
+    };
+    let help_hint = if app.input.is_empty() {
+        "  i:ignore I:toggle-hidden"
+    } else {
+        ""
+    };
 
     let info_str = format!("{}{}{}", match_info, ignored_info, help_hint);
     let separator_len = area.width.saturating_sub(info_str.len() as u16 + 4);
-    let separator = format!(
-        "  {} {}",
-        info_str,
-        "─".repeat(separator_len as usize)
-    );
+    let separator = format!("  {} {}", info_str, "─".repeat(separator_len as usize));
 
     let text = vec![
         Line::from(separator).style(Style::default().fg(Color::DarkGray)),
@@ -156,4 +170,48 @@ fn format_relative_time(dt: chrono::DateTime<chrono::Utc>) -> String {
     } else {
         format!("{}w ago", diff.num_weeks())
     }
+}
+
+fn render_help_overlay(frame: &mut Frame, area: Rect) {
+    // Calculate centered area (50% width, 60% height, min 40x15)
+    let help_area = centered_rect(50, 60, area);
+
+    // Clear the area first (important for overlay effect)
+    frame.render_widget(Clear, help_area);
+
+    // Build help content
+    let mut lines = vec![
+        Line::from(help::HELP_TITLE).style(Style::default().add_modifier(Modifier::BOLD)),
+        Line::from(""),
+    ];
+
+    for (key, desc) in help::KEYBINDINGS {
+        lines.push(Line::from(vec![
+            Span::styled(format!("  {:18}", key), Style::default().fg(Color::Cyan)),
+            Span::raw(*desc),
+        ]));
+    }
+
+    lines.push(Line::from(""));
+    lines.push(Line::from("Press ? to close").style(Style::default().fg(Color::DarkGray)));
+
+    let help_block = Block::default()
+        .borders(Borders::ALL)
+        .border_style(Style::default().fg(Color::Cyan))
+        .title(" Help ")
+        .title_style(Style::default().add_modifier(Modifier::BOLD));
+
+    let help_paragraph = Paragraph::new(lines)
+        .block(help_block)
+        .wrap(ratatui::widgets::Wrap { trim: false });
+
+    frame.render_widget(help_paragraph, help_area);
+}
+
+fn centered_rect(percent_x: u16, percent_y: u16, area: Rect) -> Rect {
+    let width = (area.width * percent_x / 100).max(40).min(area.width);
+    let height = (area.height * percent_y / 100).max(15).min(area.height);
+    let x = area.x + (area.width.saturating_sub(width)) / 2;
+    let y = area.y + (area.height.saturating_sub(height)) / 2;
+    Rect::new(x, y, width, height)
 }
