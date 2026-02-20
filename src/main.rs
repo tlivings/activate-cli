@@ -17,74 +17,63 @@ mod tui;
 mod utils;
 
 use automation::trigger_demotion_check;
-use cli::{Cli, Commands};
+use cli::Cli;
 use config::load_config;
 use database::{get_database_path, Database};
 
 fn main() -> Result<()> {
     // Trigger background demotion check (non-blocking)
-    // Projects inactive for >14 days get demoted automatically
     if let Ok(db_path) = get_database_path() {
         trigger_demotion_check(db_path);
     }
 
-    // Parse command line arguments
     let cli = Cli::parse();
 
-    // Load configuration (creates if missing)
     let _config = load_config().context("Failed to load configuration")?;
 
-    // Ensure data directory exists
     let data_dir = config::paths::get_data_dir()?;
     fs::create_dir_all(&data_dir)
         .with_context(|| format!("Failed to create data directory at {:?}", data_dir))?;
 
-    // Open database connection
     let db = Database::open().context("Failed to open database")?;
 
-    // Process commands
-    let result = match cli.command {
-        None => commands::interactive::execute_interactive(&db),
-        Some(Commands::List { json, paths, state }) => {
-            commands::list::execute_list(&db, state.as_deref(), json, paths)
-        }
-        Some(Commands::Query { keywords, exclude }) => {
-            commands::query::execute_query(&db, &keywords, exclude.as_deref())
-        }
-        Some(Commands::Activate { name }) => {
-            commands::activate::execute_activate(&db, &name)
-        }
-        Some(Commands::Deactivate { name }) => {
-            commands::deactivate::execute_deactivate(&db, &name)
-        }
-        Some(Commands::Archive { name }) => {
-            commands::archive::execute_archive(&db, &name)
-        }
-        Some(Commands::Status { name }) => {
-            commands::status::execute_status(&db, &name)
-        }
-        Some(Commands::Init { shell }) => commands::init::execute_init(&shell),
-        Some(Commands::Completions { shell, current }) => {
-            commands::completions::execute_completions(&db, &shell, current.as_deref())
-        }
-        Some(Commands::Sync) => commands::sync::execute_sync(&db),
+    // Dispatch based on flags (order matters - check flags before positional)
+    let result = if cli.list {
+        commands::list::execute_list(&db, cli.state.as_deref(), cli.json, cli.paths)
+    } else if let Some(ref path) = cli.add {
+        commands::add::execute_add(&db, path, None)
+    } else if let Some(ref name) = cli.remove {
+        commands::remove::execute_remove(&db, name)
+    } else if cli.sync {
+        commands::sync::execute_sync(&db)
+    } else if let Some(ref name) = cli.status {
+        commands::status::execute_status(&db, name)
+    } else if let Some(ref name) = cli.deactivate {
+        commands::deactivate::execute_deactivate(&db, name)
+    } else if let Some(ref name) = cli.archive {
+        commands::archive::execute_archive(&db, name)
+    } else if let Some(ref shell) = cli.init {
+        commands::init::execute_init(shell)
+    } else if let Some(ref name) = cli.query {
+        commands::query::execute_query(&db, &[name.clone()], cli.exclude.as_deref())
+    } else if let Some(ref shell) = cli.completions {
+        commands::completions::execute_completions(&db, shell, cli.current.as_deref())
+    } else if let Some(ref name) = cli.name {
+        // Positional argument = activate project
+        commands::activate::execute_activate(&db, name)
+    } else {
+        // No args = interactive TUI
+        commands::interactive::execute_interactive(&db)
     };
 
-    // Handle command results with proper exit codes
     match result {
-        Ok(()) => {
-            process::exit(0);
-        }
+        Ok(()) => process::exit(0),
         Err(e) => {
             eprintln!("{} {}", "Error:".red().bold(), e);
-
             // Print error chain for additional context
-            let mut source = e.source();
-            while let Some(err) = source {
-                eprintln!("  {} {}", "↳".yellow(), err);
-                source = err.source();
+            for cause in e.chain().skip(1) {
+                eprintln!("  {} {}", "^".yellow(), cause);
             }
-
             process::exit(1);
         }
     }
