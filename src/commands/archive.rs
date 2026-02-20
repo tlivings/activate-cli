@@ -3,21 +3,27 @@ use anyhow::Result;
 use crate::database::models::ProjectState;
 use crate::database::operations::{list_projects, update_project_state};
 use crate::database::Database;
+use crate::git::GitStatus;
 use crate::navigation::ProjectMatcher;
 
 /// Execute the archive command - mark a project as archived
 pub fn execute_archive(db: &Database, name: &str) -> Result<()> {
     let project = find_project_or_error(db, name)?;
+
+    // Check for uncommitted changes (non-blocking warning per CONTEXT.md)
+    if let Ok(status) = GitStatus::check(&project.path) {
+        if status.has_warnings() {
+            eprintln!("Warning: {}", status.warning_message());
+        }
+    }
+
     update_project_state(&db.conn, &project.name, ProjectState::Archived)?;
     println!("Archived '{}'", project.name);
     Ok(())
 }
 
 /// Find a project by name (exact or fuzzy match) or return error
-fn find_project_or_error(
-    db: &Database,
-    name: &str,
-) -> Result<crate::database::models::Project> {
+fn find_project_or_error(db: &Database, name: &str) -> Result<crate::database::models::Project> {
     let projects = list_projects(&db.conn, None)?;
     let matcher = ProjectMatcher::new();
 
@@ -87,6 +93,9 @@ mod tests {
         let db = setup_test_db().unwrap();
         let result = execute_archive(&db, "nonexistent");
         assert!(result.is_err());
-        assert!(result.unwrap_err().to_string().contains("No project matching"));
+        assert!(result
+            .unwrap_err()
+            .to_string()
+            .contains("No project matching"));
     }
 }
