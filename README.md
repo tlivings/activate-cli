@@ -7,8 +7,9 @@ Quick access to any tracked project. Type `activate <name>` and you're instantly
 - **Fuzzy project navigation** - Type partial names to find projects
 - **Frecency sorting** - Most used and recently accessed projects appear first
 - **Interactive TUI** - Visual project browser with filtering
-- **Git integration** - Clone from URLs, track origins, warn about uncommitted changes
+- **Git integration** - Clone from URLs, track origins
 - **Shell integration** - Native cd with tab completion
+- **Fast** - No git operations during activation
 
 ## Installation
 
@@ -167,6 +168,38 @@ Run `activate` with no arguments to open the interactive browser.
 - **Active** - Currently working on
 - **Inactive** - Not recently used (auto-demoted after 14 days)
 - **Archived** - Intentionally set aside
+
+## Troubleshooting
+
+### Slow cd in Warp terminal
+
+If changing to certain directories is slow, it's likely Warp's git integration checking repository status. Try:
+
+```bash
+# In slow repos, enable git caching
+git config core.untrackedCache true
+git config core.fsmonitor true
+```
+
+### Debug mode
+
+To isolate latency issues, use the debug function (skips database updates):
+
+```bash
+act_debug  # Instead of act
+```
+
+If `act_debug` is fast but `act` is slow, the issue is in shell/terminal hooks, not activate.
+
+## Development
+
+```bash
+# Run tests
+cargo test
+
+# Build release
+cargo build --release
+```
 
 ## License
 

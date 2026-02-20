@@ -82,10 +82,10 @@ fn main() -> Result<()> {
         commands::completions::execute_completions(&db, shell, cli.current.as_deref())
     } else if let Some(ref name) = cli.name {
         // Positional argument = activate project
-        commands::activate::execute_activate(&db, name)
+        commands::activate::execute_activate(&db, name, cli.debug_fast)
     } else {
         // No args = interactive TUI
-        commands::interactive::execute_interactive(&db)
+        commands::interactive::execute_interactive(&db, cli.debug_fast)
     };
 
     match result {

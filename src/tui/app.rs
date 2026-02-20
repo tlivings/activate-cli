@@ -187,7 +187,6 @@ impl App {
 
 use crate::database::operations::{toggle_ignored, update_project_state};
 use crate::database::Database;
-use crate::git::GitStatus;
 use crate::tui::ui;
 use crossterm::{
     event::{self, Event, KeyEventKind},
@@ -195,7 +194,9 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 use ratatui::{backend::CrosstermBackend, Terminal};
+use std::fs::File;
 use std::io;
+use std::panic;
 
 /// Result of running the TUI app
 pub struct TuiResult {
@@ -203,12 +204,31 @@ pub struct TuiResult {
     pub open_config: bool,
 }
 
+/// Open /dev/tty for direct terminal access (works even when stdout is captured)
+fn open_tty() -> io::Result<File> {
+    File::options().read(true).write(true).open("/dev/tty")
+}
+
 pub fn run_app(projects: Vec<Project>, db: &Database) -> io::Result<TuiResult> {
-    // Setup terminal
+    // Open /dev/tty directly for terminal access (bypasses stdout capture)
+    let mut tty = open_tty()?;
+
+    // Setup terminal on /dev/tty
     enable_raw_mode()?;
-    let mut stdout = io::stdout();
-    execute!(stdout, EnterAlternateScreen)?;
-    let backend = CrosstermBackend::new(stdout);
+    execute!(tty, EnterAlternateScreen)?;
+
+    // Set up panic hook to restore terminal on panic
+    let original_hook = panic::take_hook();
+    panic::set_hook(Box::new(move |info| {
+        let _ = disable_raw_mode();
+        // Safety: we're in a panic handler, best effort cleanup
+        if let Ok(mut tty) = File::options().write(true).open("/dev/tty") {
+            let _ = execute!(tty, LeaveAlternateScreen);
+        }
+        original_hook(info);
+    }));
+
+    let backend = CrosstermBackend::new(tty);
     let mut terminal = Terminal::new(backend)?;
 
     // Create app state
@@ -227,14 +247,6 @@ pub fn run_app(projects: Vec<Project>, db: &Database) -> io::Result<TuiResult> {
 
         // Handle deactivate request
         if let Some(name) = app.deactivate_request.take() {
-            // Check for uncommitted changes (non-blocking per CONTEXT.md)
-            if let Some(project) = app.projects.iter().find(|p| p.name == name) {
-                if let Ok(status) = GitStatus::check(&project.path) {
-                    if status.has_warnings() {
-                        // Warning shown briefly, operation proceeds
-                    }
-                }
-            }
             if update_project_state(&db.conn, &name, ProjectState::Inactive).is_ok() {
                 app.update_project_state(&name, ProjectState::Inactive);
             }
@@ -242,14 +254,6 @@ pub fn run_app(projects: Vec<Project>, db: &Database) -> io::Result<TuiResult> {
 
         // Handle archive request
         if let Some(name) = app.archive_request.take() {
-            // Check for uncommitted changes (non-blocking per CONTEXT.md)
-            if let Some(project) = app.projects.iter().find(|p| p.name == name) {
-                if let Ok(status) = GitStatus::check(&project.path) {
-                    if status.has_warnings() {
-                        // Warning shown briefly, operation proceeds
-                    }
-                }
-            }
             if update_project_state(&db.conn, &name, ProjectState::Archived).is_ok() {
                 app.update_project_state(&name, ProjectState::Archived);
             }
@@ -269,6 +273,9 @@ pub fn run_app(projects: Vec<Project>, db: &Database) -> io::Result<TuiResult> {
     // Restore terminal
     disable_raw_mode()?;
     execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
+
+    // Restore original panic hook
+    let _ = panic::take_hook();
 
     Ok(TuiResult {
         selected_path: app.selected_path,

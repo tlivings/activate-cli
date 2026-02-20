@@ -82,4 +82,8 @@ pub struct Cli {
     /// Current completion word (for completions)
     #[arg(long, value_name = "WORD", hide = true)]
     pub current: Option<String>,
+
+    /// Debug: skip all DB updates, just output path (for latency testing)
+    #[arg(long, hide = true)]
+    pub debug_fast: bool,
 }

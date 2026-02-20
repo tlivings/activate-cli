@@ -160,9 +160,9 @@ mod tests {
 
         assert!(result.is_ok(), "Running migrations twice should not fail");
 
-        // Version should still be 2
+        // Version should still be 3
         let version = get_schema_version(&conn).unwrap();
-        assert_eq!(version, 2, "Schema version should remain 2");
+        assert_eq!(version, 3, "Schema version should remain 3");
     }
 
     #[test]

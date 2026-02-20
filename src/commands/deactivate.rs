@@ -3,20 +3,11 @@ use anyhow::Result;
 use crate::database::models::ProjectState;
 use crate::database::operations::{list_projects, update_project_state};
 use crate::database::Database;
-use crate::git::GitStatus;
 use crate::navigation::ProjectMatcher;
 
 /// Execute the deactivate command - mark a project as inactive
 pub fn execute_deactivate(db: &Database, name: &str) -> Result<()> {
     let project = find_project_or_error(db, name)?;
-
-    // Check for uncommitted changes (non-blocking warning per CONTEXT.md)
-    if let Ok(status) = GitStatus::check(&project.path) {
-        if status.has_warnings() {
-            eprintln!("Warning: {}", status.warning_message());
-        }
-    }
-
     update_project_state(&db.conn, &project.name, ProjectState::Inactive)?;
     println!("Deactivated '{}'", project.name);
     Ok(())

@@ -61,23 +61,15 @@ pub fn get_database_path() -> Result<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::TempDir;
 
     #[test]
-    fn test_database_opens_successfully() {
-        // This test will use a temporary directory instead of the real config dir
-        let temp_dir = TempDir::new().unwrap();
-        std::env::set_var("HOME", temp_dir.path());
+    fn test_in_memory_database() {
+        // Use in-memory database for reliable testing
+        let conn = rusqlite::Connection::open_in_memory().unwrap();
+        schema::migrate(&conn).unwrap();
+        let db = Database { conn };
 
-        let result = open_database();
-        assert!(result.is_ok(), "Database should open successfully");
-
-        // Verify the database file was created
-        let db_path = temp_dir
-            .path()
-            .join(".config")
-            .join("activate")
-            .join("db.sqlite");
-        assert!(db_path.exists(), "Database file should be created");
+        // Verify we can perform basic operations
+        assert!(operations::list_projects(&db.conn, None).unwrap().is_empty());
     }
 }

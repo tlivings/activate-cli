@@ -62,6 +62,7 @@ impl GitStatus {
     ///
     /// Per CONTEXT.md format: "3 uncommitted changes, 2 unpushed commits"
     /// Combines staged + unstaged as "uncommitted changes".
+    #[allow(dead_code)]
     pub fn warning_message(&self) -> String {
         let changes = self.staged_count + self.unstaged_count;
         match (changes > 0, self.unpushed_count > 0) {

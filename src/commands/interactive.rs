@@ -4,8 +4,9 @@ use crate::database::operations::{increment_visit_and_touch, list_projects, upda
 use crate::database::Database;
 use crate::navigation::frecency::calculate_frecency;
 use anyhow::Result;
+use std::io::{self, Write};
 
-pub fn execute_interactive(db: &Database) -> Result<()> {
+pub fn execute_interactive(db: &Database, debug_fast: bool) -> Result<()> {
     // Get projects sorted by frecency
     let mut projects = list_projects(&db.conn, None)?;
 
@@ -32,17 +33,19 @@ pub fn execute_interactive(db: &Database) -> Result<()> {
 
     // If project selected, activate it and output path
     if let Some(path) = result.selected_path {
-        // Find project name for database update
-        if let Some(file_name) = path.file_name() {
-            if let Some(name) = file_name.to_str() {
-                // Update state and visit count
-                let _ = update_project_state(&db.conn, name, ProjectState::Active);
-                let _ = increment_visit_and_touch(&db.conn, name);
+        // Skip DB updates in debug_fast mode
+        if !debug_fast {
+            if let Some(file_name) = path.file_name() {
+                if let Some(name) = file_name.to_str() {
+                    let _ = update_project_state(&db.conn, name, ProjectState::Active);
+                    let _ = increment_visit_and_touch(&db.conn, name);
+                }
             }
         }
 
-        // Output path for shell cd
+        // Output path for shell cd (must go to stdout for shell wrapper to capture)
         println!("{}", path.display());
+        let _ = io::stdout().flush();
     }
 
     Ok(())

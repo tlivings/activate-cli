@@ -7,7 +7,7 @@ use crate::database::operations::{
     update_git_origin, update_project_state,
 };
 use crate::database::Database;
-use crate::git::{clone_repository, detect_origin, extract_repo_name};
+use crate::git::{clone_repository, extract_repo_name};
 use crate::navigation::ProjectMatcher;
 
 /// Execute the activate command - find or create project, mark active, output path
@@ -17,7 +17,7 @@ use crate::navigation::ProjectMatcher;
 /// 2. Otherwise searches for project by name (exact then fuzzy match)
 /// 3. If found: marks active, increments visit, outputs path
 /// 4. If not found: creates in tracked_directory and activates
-pub fn execute_activate(db: &Database, name: &str) -> Result<()> {
+pub fn execute_activate(db: &Database, name: &str, debug_fast: bool) -> Result<()> {
     // Check if input looks like a URL (HTTPS or SSH format per CONTEXT.md)
     if name.starts_with("https://") || name.starts_with("git@") || name.starts_with("ssh://") {
         return clone_and_activate(db, name);
@@ -28,7 +28,9 @@ pub fn execute_activate(db: &Database, name: &str) -> Result<()> {
 
     // Try exact match first (highest priority)
     if let Some(project) = matcher.find_exact(name, &projects) {
-        activate_existing(db, &project.name)?;
+        if !debug_fast {
+            activate_existing(db, &project.name)?;
+        }
         println!("{}", project.path.display());
         return Ok(());
     }
@@ -36,7 +38,9 @@ pub fn execute_activate(db: &Database, name: &str) -> Result<()> {
     // Try fuzzy match
     let results = matcher.match_projects(name, &projects);
     if let Some(best) = results.first() {
-        activate_existing(db, &best.project.name)?;
+        if !debug_fast {
+            activate_existing(db, &best.project.name)?;
+        }
         println!("{}", best.project.path.display());
         return Ok(());
     }
@@ -49,16 +53,6 @@ pub fn execute_activate(db: &Database, name: &str) -> Result<()> {
 fn activate_existing(db: &Database, name: &str) -> Result<()> {
     update_project_state(&db.conn, name, ProjectState::Active)?;
     increment_visit_and_touch(&db.conn, name)?;
-
-    // Update origin on activate if not already stored or changed
-    if let Some(project) = get_project_by_name(&db.conn, name)? {
-        if let Some(origin) = detect_origin(&project.path) {
-            if project.git_origin.as_ref() != Some(&origin) {
-                update_git_origin(&db.conn, name, Some(&origin))?;
-            }
-        }
-    }
-
     Ok(())
 }
 
@@ -204,6 +198,102 @@ mod tests {
 
         // Now active
         let project = operations::get_project_by_name(&db.conn, "my-project")
+            .unwrap()
+            .unwrap();
+        assert_eq!(project.state, ProjectState::Active);
+    }
+
+    #[test]
+    fn test_activate_does_not_modify_origin() {
+        // Verify that activate_existing does NOT call detect_origin
+        // (origin should only be set on add/sync)
+        let db = setup_test_db().unwrap();
+        let temp_dir = TempDir::new().unwrap();
+
+        let project_path = temp_dir.path().join("my-project");
+        std::fs::create_dir(&project_path).unwrap();
+        operations::add_project(&db.conn, "my-project", &project_path).unwrap();
+
+        // Verify origin is None initially
+        let project = operations::get_project_by_name(&db.conn, "my-project")
+            .unwrap()
+            .unwrap();
+        assert!(project.git_origin.is_none());
+
+        // Activate multiple times
+        activate_existing(&db, "my-project").unwrap();
+        activate_existing(&db, "my-project").unwrap();
+
+        // Origin should still be None (not detected during activate)
+        let project = operations::get_project_by_name(&db.conn, "my-project")
+            .unwrap()
+            .unwrap();
+        assert!(project.git_origin.is_none(), "Origin should not be set during activation");
+    }
+
+    #[test]
+    fn test_execute_activate_exact_match() {
+        let db = setup_test_db().unwrap();
+        let temp_dir = TempDir::new().unwrap();
+
+        let project_path = temp_dir.path().join("my-project");
+        std::fs::create_dir(&project_path).unwrap();
+        operations::add_project(&db.conn, "my-project", &project_path).unwrap();
+
+        // execute_activate with exact name should work
+        let result = execute_activate(&db, "my-project", false);
+        assert!(result.is_ok());
+
+        // Verify state changed
+        let project = operations::get_project_by_name(&db.conn, "my-project")
+            .unwrap()
+            .unwrap();
+        assert_eq!(project.state, ProjectState::Active);
+    }
+
+    #[test]
+    fn test_execute_activate_debug_fast_skips_db() {
+        let db = setup_test_db().unwrap();
+        let temp_dir = TempDir::new().unwrap();
+
+        let project_path = temp_dir.path().join("my-project");
+        std::fs::create_dir(&project_path).unwrap();
+        operations::add_project(&db.conn, "my-project", &project_path).unwrap();
+
+        // Get initial state
+        let initial = operations::get_project_by_name(&db.conn, "my-project")
+            .unwrap()
+            .unwrap();
+        assert_eq!(initial.state, ProjectState::Inactive);
+        assert_eq!(initial.visit_count, 0);
+
+        // execute_activate with debug_fast=true should skip DB updates
+        let result = execute_activate(&db, "my-project", true);
+        assert!(result.is_ok());
+
+        // State and visit count should NOT have changed
+        let project = operations::get_project_by_name(&db.conn, "my-project")
+            .unwrap()
+            .unwrap();
+        assert_eq!(project.state, ProjectState::Inactive, "State should not change with debug_fast");
+        assert_eq!(project.visit_count, 0, "Visit count should not change with debug_fast");
+    }
+
+    #[test]
+    fn test_execute_activate_fuzzy_match() {
+        let db = setup_test_db().unwrap();
+        let temp_dir = TempDir::new().unwrap();
+
+        let project_path = temp_dir.path().join("my-awesome-project");
+        std::fs::create_dir(&project_path).unwrap();
+        operations::add_project(&db.conn, "my-awesome-project", &project_path).unwrap();
+
+        // Fuzzy match should work
+        let result = execute_activate(&db, "awesome", false);
+        assert!(result.is_ok());
+
+        // Verify state changed
+        let project = operations::get_project_by_name(&db.conn, "my-awesome-project")
             .unwrap()
             .unwrap();
         assert_eq!(project.state, ProjectState::Active);

@@ -53,61 +53,22 @@ pub fn generate_wrapper(shell: Shell, func_name: &str) -> String {
 fn generate_bash(exe: &str, func_name: &str) -> String {
     format!(
         r#"# Activate shell integration for bash
-# Add this to your ~/.bashrc:
-#   eval "$({exe} --init bash)"
-
-# Path to activate binary
 __ACTIVATE_BIN="{exe}"
 
-# Change directory helper
-__activate_cd() {{
-    \builtin cd -- "$@" || return
-}}
-
-# Main activation function
 {func_name}() {{
-    if [[ $# -eq 0 ]]; then
-        local result
-        result="$("$__ACTIVATE_BIN")"
-        [[ -n "$result" && -d "$result" ]] && __activate_cd "$result"
-        return
-    fi
-
-    case "$1" in
-        -l|--list|-a|--add|-r|--remove|-s|--sync|--status|-d|--deactivate|--archive|--init|-c|--config|-h|--help|-V|--version)
-            "$__ACTIVATE_BIN" "$@"
-            return
-            ;;
-    esac
-
     local result
-    result=$("$__ACTIVATE_BIN" --query "$1" --exclude "$PWD" 2>/dev/null)
-
-    if [[ -n "$result" && -d "$result" ]]; then
-        __activate_cd "$result"
-    else
-        "$__ACTIVATE_BIN" "$@"
-    fi
+    result="$("$__ACTIVATE_BIN" "$@")"
+    [[ -n "$result" && -d "$result" ]] && builtin cd -- "$result"
 }}
 
 # Tab completion
 _{func_name}_completions() {{
     local cur="${{COMP_WORDS[COMP_CWORD]}}"
-    local prev="${{COMP_WORDS[COMP_CWORD-1]}}"
-
     if [[ ${{COMP_CWORD}} -eq 1 ]]; then
-        COMPREPLY=($(compgen -W "--list --add --remove --sync --status --deactivate --archive --init --config -l -a -r -s -d -c" -- "$cur"))
         local projects
         projects="$("$__ACTIVATE_BIN" --completions bash --current "$cur" 2>/dev/null)"
-        COMPREPLY+=($projects)
-        return
+        COMPREPLY=($projects)
     fi
-
-    case "$prev" in
-        --status|--deactivate|-d|--archive|--remove|-r)
-            COMPREPLY=($("$__ACTIVATE_BIN" --completions bash --current "$cur" 2>/dev/null))
-            ;;
-    esac
 }}
 complete -F _{func_name}_completions {func_name}
 "#,
@@ -119,75 +80,36 @@ complete -F _{func_name}_completions {func_name}
 fn generate_zsh(exe: &str, func_name: &str) -> String {
     format!(
         r#"# Activate shell integration for zsh
-# Add this to your ~/.zshrc:
-#   eval "$({exe} --init zsh)"
-
-# Path to activate binary
 __ACTIVATE_BIN="{exe}"
 
-# Change directory helper
-__activate_cd() {{
-    \builtin cd -- "$@" || return
+# Precmd hook for cd (workaround for Warp terminal slowness)
+__activate_target=""
+__activate_precmd() {{
+    if [[ -n "$__activate_target" ]]; then
+        cd "$__activate_target"
+        __activate_target=""
+    fi
+}}
+precmd_functions+=(__activate_precmd)
+
+{func_name}() {{
+    local result
+    result="$("$__ACTIVATE_BIN" "$@")"
+    [[ -n "$result" && -d "$result" ]] && __activate_target="$result"
 }}
 
-# Main activation function
-{func_name}() {{
-    if [[ $# -eq 0 ]]; then
-        local result
-        result="$("$__ACTIVATE_BIN")"
-        [[ -n "$result" && -d "$result" ]] && __activate_cd "$result"
-        return
-    fi
-
-    case "$1" in
-        -l|--list|-a|--add|-r|--remove|-s|--sync|--status|-d|--deactivate|--archive|--init|-c|--config|-h|--help|-V|--version)
-            "$__ACTIVATE_BIN" "$@"
-            return
-            ;;
-    esac
-
+# Debug version: skips DB updates to isolate latency
+{func_name}_debug() {{
     local result
-    result=$("$__ACTIVATE_BIN" --query "$1" --exclude "$PWD" 2>/dev/null)
-
-    if [[ -n "$result" && -d "$result" ]]; then
-        __activate_cd "$result"
-    else
-        "$__ACTIVATE_BIN" "$@"
-    fi
+    result="$("$__ACTIVATE_BIN" --debug-fast "$@")"
+    [[ -n "$result" && -d "$result" ]] && __activate_target="$result"
 }}
 
 # Tab completion
 _{func_name}() {{
-    local -a flags projects
-    flags=(
-        '--list:List all tracked projects'
-        '-l:List all tracked projects'
-        '--add:Add a project by path'
-        '-a:Add a project by path'
-        '--remove:Remove a project by name'
-        '-r:Remove a project by name'
-        '--sync:Synchronize project states'
-        '-s:Synchronize project states'
-        '--status:Show project status'
-        '--deactivate:Deactivate a project'
-        '-d:Deactivate a project'
-        '--archive:Archive a project'
-        '--init:Initialize shell integration'
-        '--config:Open configuration file'
-        '-c:Open configuration file'
-    )
-
     if (( CURRENT == 2 )); then
-        _describe 'flag' flags
-        projects=(${{(f)"$("$__ACTIVATE_BIN" --completions zsh 2>/dev/null)"}})
+        local projects=(${{(f)"$("$__ACTIVATE_BIN" --completions zsh 2>/dev/null)"}})
         compadd -a projects
-    else
-        case "${{words[2]}}" in
-            --status|--deactivate|-d|--archive|--remove|-r)
-                projects=(${{(f)"$("$__ACTIVATE_BIN" --completions zsh 2>/dev/null)"}})
-                compadd -a projects
-                ;;
-        esac
     fi
 }}
 compdef _{func_name} {func_name}
@@ -200,47 +122,18 @@ compdef _{func_name} {func_name}
 fn generate_fish(exe: &str, func_name: &str) -> String {
     format!(
         r#"# Activate shell integration for fish
-# Add this to your ~/.config/fish/config.fish:
-#   {exe} --init fish | source
-
-# Path to activate binary
 set -g __ACTIVATE_BIN "{exe}"
 
 function {func_name}
-    if test (count $argv) -eq 0
-        set -l result ($__ACTIVATE_BIN)
-        and cd $result
-        return
-    end
-
-    switch $argv[1]
-        case -l --list -a --add -r --remove -s --sync --status -d --deactivate --archive --init -c --config -h --help -V --version
-            $__ACTIVATE_BIN $argv
-            return
-    end
-
-    set -l result ($__ACTIVATE_BIN --query $argv[1] --exclude $PWD 2>/dev/null)
-
+    set -l result ($__ACTIVATE_BIN $argv)
     if test -n "$result"; and test -d "$result"
         cd $result
-    else
-        $__ACTIVATE_BIN $argv
     end
 end
 
 # Tab completion
 complete -c {func_name} -f
-complete -c {func_name} -n "__fish_use_subcommand" -s l -l list -d "List projects"
-complete -c {func_name} -n "__fish_use_subcommand" -s a -l add -d "Add a project"
-complete -c {func_name} -n "__fish_use_subcommand" -s r -l remove -d "Remove a project"
-complete -c {func_name} -n "__fish_use_subcommand" -s s -l sync -d "Sync project states"
-complete -c {func_name} -n "__fish_use_subcommand" -l status -d "Show project status"
-complete -c {func_name} -n "__fish_use_subcommand" -s d -l deactivate -d "Deactivate a project"
-complete -c {func_name} -n "__fish_use_subcommand" -l archive -d "Archive a project"
-complete -c {func_name} -n "__fish_use_subcommand" -l init -d "Initialize shell"
-complete -c {func_name} -n "__fish_use_subcommand" -s c -l config -d "Open config file"
-complete -c {func_name} -n "__fish_use_subcommand" -a "($__ACTIVATE_BIN --completions fish 2>/dev/null)"
-complete -c {func_name} -n "__fish_seen_subcommand_from --status --deactivate -d --archive --remove -r" -a "($__ACTIVATE_BIN --completions fish 2>/dev/null)"
+complete -c {func_name} -a "($__ACTIVATE_BIN --completions fish 2>/dev/null)"
 "#,
         exe = exe,
         func_name = func_name

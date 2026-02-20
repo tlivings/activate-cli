@@ -3,20 +3,11 @@ use anyhow::Result;
 use crate::database::models::ProjectState;
 use crate::database::operations::{list_projects, update_project_state};
 use crate::database::Database;
-use crate::git::GitStatus;
 use crate::navigation::ProjectMatcher;
 
 /// Execute the archive command - mark a project as archived
 pub fn execute_archive(db: &Database, name: &str) -> Result<()> {
     let project = find_project_or_error(db, name)?;
-
-    // Check for uncommitted changes (non-blocking warning per CONTEXT.md)
-    if let Ok(status) = GitStatus::check(&project.path) {
-        if status.has_warnings() {
-            eprintln!("Warning: {}", status.warning_message());
-        }
-    }
-
     update_project_state(&db.conn, &project.name, ProjectState::Archived)?;
     println!("Archived '{}'", project.name);
     Ok(())
