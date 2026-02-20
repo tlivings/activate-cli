@@ -32,7 +32,7 @@ fn main() -> Result<()> {
 
     // Handle --init flag (shell setup doesn't need config)
     if let Some(ref shell) = cli.init {
-        return commands::init::execute_init(shell);
+        return commands::init::execute_init(shell, cli.func_name.as_deref());
     }
 
     // Load config and check if first-time setup is needed

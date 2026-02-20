@@ -42,6 +42,10 @@ pub struct Cli {
     #[arg(long, value_name = "SHELL")]
     pub init: Option<String>,
 
+    /// Custom function name for shell integration (default: activate)
+    #[arg(long = "name", value_name = "NAME")]
+    pub func_name: Option<String>,
+
     /// Open configuration file in editor
     #[arg(short = 'c', long)]
     pub config: bool,
