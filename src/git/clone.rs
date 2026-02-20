@@ -17,7 +17,7 @@ pub fn extract_repo_name(url: &str) -> Option<String> {
     let name = url
         .trim_end_matches('/')
         .trim_end_matches(".git")
-        .rsplit(|c| c == '/' || c == ':')
+        .rsplit(['/', ':'])
         .next()?;
 
     if name.is_empty() {
