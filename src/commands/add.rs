@@ -2,7 +2,9 @@ use anyhow::{Context, Result};
 use colored::Colorize;
 use std::path::Path;
 
+use crate::database::operations::update_git_origin;
 use crate::database::Database;
+use crate::git::detect_origin;
 use crate::utils::paths::canonicalize_project_path;
 
 /// Execute the add command to track a new project
@@ -39,6 +41,11 @@ pub fn execute_add(db: &Database, path: &Path, name_override: Option<String>) ->
     // Try to add the project to the database
     match crate::database::operations::add_project(&db.conn, &project_name, &canonical_path) {
         Ok(_) => {
+            // Detect and store git origin if available
+            if let Some(origin) = detect_origin(&canonical_path) {
+                update_git_origin(&db.conn, &project_name, Some(&origin))?;
+            }
+
             println!(
                 "{} Added project '{}' at {}",
                 "✓".green().bold(),
