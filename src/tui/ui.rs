@@ -54,15 +54,6 @@ fn render_list(frame: &mut Frame, app: &App, area: Rect) {
 
             let prefix = if is_selected { "▸ " } else { "  " };
 
-            // Calculate padding for right-alignment
-            let name_len = project.name.len() as u16;
-            let prefix_len = 2u16; // "▸ " or "  "
-            let indicator_len = 2u16; // "● "
-            let available = area
-                .width
-                .saturating_sub(prefix_len + name_len + indicator_len);
-            let padding = " ".repeat(available as usize);
-
             // Style the name based on selection and state
             let name_style = if is_selected {
                 if project.ignored {
@@ -84,9 +75,8 @@ fn render_list(frame: &mut Frame, app: &App, area: Rect) {
 
             let line = Line::from(vec![
                 Span::styled(prefix, prefix_style),
+                Span::styled(format!("{} ", indicator), Style::default().fg(indicator_color)),
                 Span::styled(&project.name, name_style),
-                Span::raw(padding),
-                Span::styled(indicator, Style::default().fg(indicator_color)),
             ]);
 
             let style = if is_selected {
